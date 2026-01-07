@@ -12,9 +12,9 @@ export const authService = {
         .eq('username', username)
         .single();
 
-      if (error || !user) {
-        throw new Error('Username atau password salah');
-      }
+      if (password !== user.password) {
+  throw new Error('Username atau password salah');
+}
 
       // Verify password (simple comparison for now, nanti bisa pakai bcrypt)
       // Untuk cepat, kita pakai plain text dulu
