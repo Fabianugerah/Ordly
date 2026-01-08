@@ -18,10 +18,10 @@ export default function DashboardLayout({
 
   return (
     <ProtectedRoute allowedRoles={allowedRoles}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
+
         <main className="lg:ml-64 pt-16 min-h-screen">
           <div className="p-6">
             {children}

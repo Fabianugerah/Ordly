@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { authAPI } from '@/lib/api/auth';
 import {
   LayoutDashboard,
   Users,
@@ -20,8 +23,22 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
   const role = user?.level?.nama_level;
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+      logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      logout();
+      router.push('/login');
+    }
+  };
+
 
   // Menu items based on role
   const menuItems = {
@@ -74,10 +91,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 
+  bg-white dark:bg-neutral-900 
+  border-r border-gray-200 dark:border-neutral-800
+  z-40 transform transition-transform duration-300
+  ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
+
         <nav className="p-4 space-y-2">
           {currentMenu.map((item) => {
             const Icon = item.icon;
@@ -88,11 +108,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800'
+                  }`}
+
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
@@ -100,6 +120,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             );
           })}
         </nav>
+        <div className="absolute bottom-4 left-0 w-full px-4">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl
+           text-red-500 hover:bg-red-500/10 transition"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
+
       </aside>
     </>
   );
