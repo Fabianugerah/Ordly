@@ -85,8 +85,8 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Dashboard Administrator</h1>
-          <p className="text-gray-600 mt-1">Selamat datang di panel admin Ordly (Supabase Edition ⚡)</p>
+          <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Dashboard Administrator</h1>
+          <p className="text-neutral-600 mt-1">Selamat Datang Di Halaman Dashboard Administrator.</p>
         </div>
 
         {/* Stats Grid */}

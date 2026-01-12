@@ -146,8 +146,8 @@ export default function AdminUsersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Manajemen User</h1>
-            <p className="text-gray-600 mt-1">Kelola pengguna sistem</p>
+            <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Manajemen User</h1>
+            <p className="text-neutral-600 mt-1">Kelola pengguna sistem</p>
           </div>
           <Button
             onClick={() => {
@@ -164,39 +164,39 @@ export default function AdminUsersPage() {
 
         <Card>
           <div className="mb-4 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
             <input
               type="text"
               placeholder="Cari user..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-10 pr-4 py-2 border bg-transparent dark:text-white border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-neutral-50 dark:bg-neutral-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Username</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Nama</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Role</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Aksi</th>
+                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">ID</th>
+                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Username</th>
+                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama</th>
+                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Role</th>
+                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-neutral-800">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id_user} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{user.id_user}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{user.username}</td>
-                    <td className="px-4 py-3 text-sm">{user.nama_user}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs capitalize">
+                  <tr key={user.id_user} className="text-white hover:bg-neutral-800">
+                    <td className="p-4 text-sm">{user.id_user}</td>
+                    <td className="p-4 text-sm font-medium">{user.username}</td>
+                    <td className="p-4 text-sm">{user.nama_user}</td>
+                    <td className="p-4 text-sm">
+                      <span className="px-2 py-1 bg-blue-100 dark:bg-neutral-800 text-blue-800 dark:text-neutral-400 rounded-full text-xs capitalize">
                         {user.level?.nama_level}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="p-4 text-sm">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(user)}
@@ -230,7 +230,7 @@ export default function AdminUsersPage() {
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Username *
               </label>
               <input
@@ -238,12 +238,12 @@ export default function AdminUsersPage() {
                 required
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Password {editingUser ? '(Kosongkan jika tidak ingin mengubah)' : '*'}
               </label>
               <input
@@ -251,12 +251,12 @@ export default function AdminUsersPage() {
                 required={!editingUser}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Nama Lengkap *
               </label>
               <input
@@ -264,19 +264,19 @@ export default function AdminUsersPage() {
                 required
                 value={formData.nama_user}
                 onChange={(e) => setFormData({ ...formData, nama_user: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Role *
               </label>
               <select
                 required
                 value={formData.id_level}
                 onChange={(e) => setFormData({ ...formData, id_level: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {levels.map((level) => (
                   <option key={level.id_level} value={level.id_level}>

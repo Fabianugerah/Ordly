@@ -7,7 +7,7 @@ import Input from '@/components/ui/Input';
 import MenuCard from '@/components/ui/MenuCard';
 import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 export default function MenuManagementPage() {
   const [menus, setMenus] = useState<any[]>([]);
@@ -174,8 +174,8 @@ export default function MenuManagementPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Manajemen Menu</h1>
-            <p className="text-gray-600 mt-1">Kelola menu makanan dan minuman</p>
+            <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Manajemen Menu</h1>
+            <p className="text-neutral-600 mt-1">Kelola menu makanan dan minuman</p>
           </div>
           <Button
             onClick={() => {
@@ -190,17 +190,17 @@ export default function MenuManagementPage() {
         </div>
 
         {/* Search & Category Tabs with Count */}
-        <div className="bg-white rounded-xl shadow-md p-4">
+        <div className="bg-transparent dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-md p-4">
           <div className="flex flex-col md:flex-row gap-3 items-center">
             {/* Search */}
             <div className="relative flex-1 w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
               <input
                 type="text"
                 placeholder="Cari menu..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-12 pr-4 py-3 bg-transparent text-white border border-gray-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500/50"
               />
             </div>
 

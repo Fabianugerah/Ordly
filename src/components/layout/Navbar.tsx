@@ -44,17 +44,17 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   }, []);
 
   return (
-    <nav className="fixed top-0 z-30 w-full h-16 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
+    <nav className="fixed top-0 z-30 w-full h-16 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
       <div className="flex items-center justify-between h-full px-4">
 
         {/* Left */}
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+            className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             aria-label="Open menu" // Tambahan untuk aksesibilitas
           >
-            <Menu className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+            <Menu className="w-5 h-5 text-neutral-700 dark:text-neutral-200" />
           </button>
 
           <div className="text-orange-600 font-bold text-2xl tracking-tight">
@@ -67,13 +67,13 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           {/* Theme Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors" // Standarisasi hover
+            className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors" // Standarisasi hover
             aria-label="Toggle theme"
           >
             {isDarkMode ? (
-              <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <Sun className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
             ) : (
-              <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              <Moon className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
             )}
           </button>
 
@@ -81,40 +81,40 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors" // Standarisasi hover
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors" // Standarisasi hover
               aria-label="Open profile menu" // Tambahan untuk aksesibilitas
             >
-              <div className="w-9 h-9 bg-gray-600 rounded-full flex items-center justify-center">
+              <div className="w-9 h-9 bg-neutral-600 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">
                   {user?.nama_user}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
                   {user?.level?.nama_level}
                 </p>
               </div>
               <ChevronDown
-                className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''
+                className={`w-4 h-4 text-neutral-500 dark:text-neutral-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''
                   }`}
               />
             </button>
 
             {/* Dropdown Menu */}
             {showProfileMenu && (
-              <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-neutral-900/80 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 dark:border-neutral-800 py-2 z-50">
+              <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-neutral-900/80 backdrop-blur-md rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-800 py-2 z-50">
                 {/* User Info */}
-                <div className="flex gap-3 px-4 py-3 border-b border-gray-200 dark:border-neutral-800">
-                  <div className="w-9 h-9 bg-gray-600 rounded-full flex items-center justify-center">
+                <div className="flex gap-3 px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
+                  <div className="w-9 h-9 bg-neutral-600 rounded-full flex items-center justify-center">
                     <User className="w-5 h-5 text-white" />
                   </div>
 
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-white">
                       {user?.nama_user}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 capitalize">
                       {user?.level?.nama_level}
                     </p>
                   </div>
@@ -124,14 +124,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 <div>
                   <button
                     onClick={() => alert('Navigate to Settings')} // Placeholder onClick untuk Settings
-                    className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                    className="w-full px-4 py-3 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-3 transition-colors"
                   >
                     <Settings className="w-4 h-4" />
                     Settings
                   </button>
                   <button
                     onClick={toggleDarkMode}
-                    className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 transition-colors"
+                    className="w-full px-4 py-3 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-3 transition-colors"
                   >
                     {isDarkMode ? (
                       <>
@@ -147,7 +147,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   </button>
                   <button
                     onClick={() => logout()} // Tambahan: Logout button
-                    className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors border-t border-gray-200 dark:border-neutral-800"
+                    className="w-full px-4 py-3 text-left text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors border-t border-neutral-200 dark:border-neutral-800"
                   >
                     <LogOut className="w-4 h-4" />
                     Logout
