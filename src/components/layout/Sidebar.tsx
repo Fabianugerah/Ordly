@@ -69,7 +69,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       { href: '/dashboard/owner', icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/dashboard/owner/analytics', icon: TrendingUp, label: 'Analytics' },
     ],
-    pelanggan: [
+    customer: [
       { href: '/dashboard/customer', icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/dashboard/customer/menu', icon: UtensilsCrossed, label: 'Menu' },
       { href: '/dashboard/customer/order', icon: ShoppingCart, label: 'Buat Pesanan' },
@@ -90,7 +90,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     owner: [
       { href: '/dashboard/owner/laporan', icon: FileText, label: 'Laporan Bisnis' },
     ],
-    pelanggan: [],
+    customer: [],
   };
 
   const currentMainMenu = role ? mainMenuItems[role] || [] : [];
@@ -237,27 +237,53 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             {/* Settings Section */}
             <div className="px-4 py-4 border-t border-neutral-800/50">
-              <Link
-                href={`/dashboard/${role}/settings`}
-                onClick={onClose}
-                className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${pathname.includes('/settings')
-                  ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/10 text-white shadow-lg shadow-orange-500/10'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
-                  }`}
-              >
-                {pathname.includes('/settings') && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-orange-500 to-orange-600 rounded-r-full" />
-                )}
+              {(() => {
+                const isActive = pathname.includes('/settings');
 
-                <Settings className={`w-5 h-5 transition-transform duration-200 ${pathname.includes('/settings') ? 'text-orange-500 scale-110' : 'group-hover:scale-110'
-                  }`} />
-                <span className="font-medium text-sm">Pengaturan</span>
+                return (
+                  <Link
+                    href={`/dashboard/${role}/settings`}
+                    onClick={onClose}
+                    className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${isActive
+                        ? 'bg-gradient-to-b from-neutral-300/10 via-neutral-300/5 to-neutral-800/20 text-white shadow-lg shadow-black/10'
+                        : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                      }`}
+                  >
+                    {/* 1. Neon Indicator Bar */}
+                    {isActive && (
+                      <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 shadow-[0_0_15px_#F97316] rounded-r-full" />
+                    )}
 
-                {pathname.includes('/settings') && (
-                  <ChevronRight className="w-4 h-4 ml-auto text-orange-500" />
-                )}
-              </Link>
+                    {/* 2. Inner Left Glow */}
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0 rounded-l-xl pointer-events-none" />
+                    )}
+
+                    {/* 3. Icon */}
+                    <Settings className="w-5 h-5 transition-transform duration-200" />
+
+                    {/* 4. Label */}
+                    <span
+                      className={`relative z-10 font-semibold text-[14px] transition-colors duration-300 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'
+                        }`}
+                    >
+                      Pengaturan
+                    </span>
+
+                    {/* 5. Chevron */}
+                    {isActive && (
+                      <ChevronRight className="w-5 h-5 ml-auto text-white" />
+                    )}
+
+                    {/* 6. Subtle top border */}
+                    {isActive && (
+                      <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />
+                    )}
+                  </Link>
+                );
+              })()}
             </div>
+
           </div>
 
           {/* Logout */}

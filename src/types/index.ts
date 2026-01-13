@@ -1,7 +1,7 @@
 // User & Level Types
 export interface Level {
   id_level: number;
-  nama_level: 'administrator' | 'waiter' | 'kasir' | 'owner' | 'pelanggan';
+  nama_level: 'administrator' | 'waiter' | 'kasir' | 'owner' | 'customer';
   created_at?: string;
   updated_at?: string;
 }

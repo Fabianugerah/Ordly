@@ -64,7 +64,7 @@ export default function CustomerOrdersListPage() {
 
   if (loading) {
     return (
-      <DashboardLayout allowedRoles={['pelanggan']}>
+      <DashboardLayout allowedRoles={['customer']}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
@@ -73,7 +73,7 @@ export default function CustomerOrdersListPage() {
   }
 
   return (
-    <DashboardLayout allowedRoles={['pelanggan']}>
+    <DashboardLayout allowedRoles={['customer']}>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Pesanan Saya</h1>

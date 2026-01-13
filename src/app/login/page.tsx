@@ -35,7 +35,7 @@ export default function LoginPage() {
         case 'owner':
           router.push('/dashboard/owner');
           break;
-        case 'pelanggan':
+        case 'customer':
           router.push('/dashboard/customer');
           break;
         default:
@@ -90,7 +90,7 @@ export default function LoginPage() {
         case 'owner':
           router.push('/dashboard/owner');
           break;
-        case 'pelanggan':
+        case 'customer':
           router.push('/dashboard/customer');
           break;
         default:

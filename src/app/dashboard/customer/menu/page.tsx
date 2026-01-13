@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Search, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Utensils, Image } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
@@ -14,8 +13,8 @@ export default function CustomerMenuPage() {
   const { items, addItem, updateQuantity } = useCartStore();
   const [menu, setMenu] = useState<any[]>([]);
   const [filteredMenu, setFilteredMenu] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
-  const [kategori, setKategori] = useState('Semua');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +23,8 @@ export default function CustomerMenuPage() {
 
   useEffect(() => {
     filterMenu();
-  }, [search, kategori, menu]);
+  }, [menu, searchTerm, selectedCategory]);
+
 
   const fetchMenu = async () => {
     try {
@@ -48,28 +48,37 @@ export default function CustomerMenuPage() {
   const filterMenu = () => {
     let filtered = menu;
 
-    if (search) {
+    if (searchTerm) {
       filtered = filtered.filter((item) =>
-        item.nama_masakan.toLowerCase().includes(search.toLowerCase())
+        item.nama_masakan.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    if (kategori !== 'Semua') {
-      filtered = filtered.filter((item) => item.kategori === kategori);
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(
+        (item) => item.kategori.toLowerCase() === selectedCategory
+      );
     }
 
     setFilteredMenu(filtered);
   };
 
+
   const getItemQuantity = (id_masakan: number) => {
     return items.find((item) => item.id_masakan === id_masakan)?.jumlah || 0;
   };
 
-  const kategoriList = ['Semua', 'Makanan', 'Minuman', 'Snack', 'Dessert'];
+  const kategoriList = [
+    { label: 'Semua', value: 'all' },
+    { label: 'Makanan', value: 'makanan' },
+    { label: 'Minuman', value: 'minuman' },
+    { label: 'Dessert', value: 'dessert' },
+  ];
+
 
   if (loading) {
     return (
-      <DashboardLayout allowedRoles={['pelanggan']}>
+      <DashboardLayout allowedRoles={['customer']}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
@@ -78,7 +87,7 @@ export default function CustomerMenuPage() {
   }
 
   return (
-    <DashboardLayout allowedRoles={['pelanggan']}>
+    <DashboardLayout allowedRoles={['customer']}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -95,96 +104,135 @@ export default function CustomerMenuPage() {
         </div>
 
         {/* Filter */}
-        <Card>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-md p-4">
+          <div className="flex flex-col md:flex-row gap-3 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
               <input
                 type="text"
                 placeholder="Cari menu..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+
+                className="w-full pl-12 pr-4 py-3 bg-transparent dark:text-white border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
+
             <div className="flex gap-2 overflow-x-auto">
               {kategoriList.map((kat) => (
                 <button
-                  key={kat}
-                  onClick={() => setKategori(kat)}
-                  className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                    kategori === kat
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  key={kat.value}
+                  onClick={() => setSelectedCategory(kat.value)}
+
+                  className={`px-4 py-2 rounded-lg whitespace-nowrap ${selectedCategory === kat.value
+
+                    ? 'bg-neutral-800 text-white shadow-md'
+                    : 'bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-800'
+                    }`}
                 >
-                  {kat}
+                  {kat.label}
                 </button>
               ))}
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Menu Grid */}
+        {/* Menu Grid - Beautiful Cards */}
         {filteredMenu.length === 0 ? (
-          <Card>
-            <p className="text-center text-gray-500 py-8">Tidak ada menu ditemukan</p>
-          </Card>
+          <div className="text-center py-12 bg-white rounded-xl">
+            <p className="text-gray-500">Tidak ada menu ditemukan</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredMenu.map((item) => {
               const quantity = getItemQuantity(item.id_masakan);
               return (
-                <Card key={item.id_masakan} className="hover:shadow-xl transition-shadow">
-                  <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg mb-4 flex items-center justify-center">
-                    <span className="text-6xl">🍽️</span>
+                <div
+                  key={item.id_masakan}
+                  className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl shadow-2xl group transition-all duration-500 hover:-translate-y-2"
+                >
+                  {/* Background Image Layer */}
+                  <div className="absolute inset-0 z-0">
+                    {item.gambar ? (
+                      <img
+                        src={item.gambar}
+                        alt={item.nama_masakan}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600">
+                        <Utensils className="w-20 h-20 text-white/20" />
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">
-                    {item.nama_masakan}
-                  </h3>
-                  {item.kategori && (
-                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full mb-2">
-                      {item.kategori}
-                    </span>
-                  )}
-                  {item.deskripsi && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {item.deskripsi}
-                    </p>
-                  )}
-                  <p className="text-2xl font-bold text-primary mb-4">
-                    Rp {parseFloat(item.harga).toLocaleString('id-ID')}
-                  </p>
 
-                  {quantity === 0 ? (
-                    <Button
-                      onClick={() => addItem(item)}
-                      className="w-full flex items-center justify-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Tambah ke Keranjang
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => updateQuantity(item.id_masakan, quantity - 1)}
-                        className="flex-1"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      <span className="text-xl font-bold text-gray-800 min-w-[3rem] text-center">
-                        {quantity}
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+                  {/* Content Layer */}
+                  <div className="absolute inset-0 z-20 flex flex-col justify-end p-4">
+
+                    {/* Title & Price */}
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-bold text-white leading-tight drop-shadow-md max-w-[70%]">
+                        {item.nama_masakan}
+                      </h3>
+                      <span className="bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-2xl text-white font-bold text-xs">
+                        Rp {parseFloat(item.harga).toLocaleString('id-ID')}
                       </span>
-                      <Button
-                        onClick={() => updateQuantity(item.id_masakan, quantity + 1)}
-                        className="flex-1"
+                    </div>
+
+                    {/* Description */}
+                    {item.deskripsi && (
+                      <p className="text-gray-300 text-sm line-clamp-2 mb-4 drop-shadow-sm">
+                        {item.deskripsi}
+                      </p>
+                    )}
+
+                    {/* Category Badge */}
+                    <div className="flex gap-2 mb-6">
+                      <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-[10px] font-bold uppercase tracking-wider">
+                        {item.kategori}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    {quantity === 0 ? (
+                      <button
+                        onClick={() => addItem(item)}
+                        className="w-full bg-white hover:bg-gray-200 text-black font-semibold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-lg"
                       >
                         <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </Card>
+                        Tambah ke Keranjang
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.id_masakan, quantity - 1)}
+                          className="flex-1 bg-white/90 hover:bg-white text-black font-semibold py-3 rounded-2xl transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="px-6 py-3 bg-white text-black font-bold rounded-2xl shadow-lg">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.id_masakan, quantity + 1)}
+                          className="flex-1 bg-white hover:bg-gray-200 text-black font-semibold py-3 rounded-2xl transition-colors flex items-center justify-center shadow-lg"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Decorative dots */}
+                  <div className="absolute top-1/2 right-1/2 translate-x-1/2 z-20 flex gap-1 opacity-50">
+                    <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/40"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/40"></div>
+                  </div>
+                </div>
               );
             })}
           </div>

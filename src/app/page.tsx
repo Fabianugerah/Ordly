@@ -27,7 +27,7 @@ export default function Home() {
         case 'owner':
           router.push('/dashboard/owner');
           break;
-        case 'pelanggan':
+        case 'customer':
           router.push('/dashboard/customer');
           break;
         default:

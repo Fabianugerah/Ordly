@@ -103,7 +103,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 
             {/* Dropdown Menu */}
             {showProfileMenu && (
-              <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-neutral-900/80 backdrop-blur-md rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-800 py-2 z-50">
+              <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-neutral-900/60 backdrop-blur-md rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-800 py-2 z-50">
                 {/* User Info */}
                 <div className="flex gap-3 px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
                   <div className="w-9 h-9 bg-neutral-600 rounded-full flex items-center justify-center">

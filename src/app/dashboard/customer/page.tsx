@@ -52,7 +52,7 @@ export default function CustomerDashboard() {
 
   if (loading) {
     return (
-      <DashboardLayout allowedRoles={['pelanggan']}>
+      <DashboardLayout allowedRoles={['customer']}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
@@ -61,7 +61,7 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <DashboardLayout allowedRoles={['pelanggan']}>
+    <DashboardLayout allowedRoles={['customer']}>
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-primary to-blue-600 rounded-2xl p-8 text-white">
           <h1 className="text-3xl font-bold mb-2">Selamat Datang, {user?.nama_user}! 👋</h1>

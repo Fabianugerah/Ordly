@@ -24,13 +24,13 @@ export default function StatsCard({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border border-neutral-800">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-800">{value}</p>
+          <p className="text-sm font-medium text-neutral-400 mb-1">{title}</p>
+          <p className="text-3xl font-bold text-white">{value}</p>
           {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>
           )}
         </div>
         <div className={`w-12 h-12 ${colors[color]} rounded-lg flex items-center justify-center`}>

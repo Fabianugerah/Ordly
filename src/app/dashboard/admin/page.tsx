@@ -74,7 +74,7 @@ export default function AdminDashboard() {
     return (
       <DashboardLayout allowedRoles={['administrator']}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-neutral-400 border-t-transparent rounded-full"></div>
         </div>
       </DashboardLayout>
     );
@@ -145,31 +145,31 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <a
               href="/dashboard/admin/users"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-center"
+              className="p-4 border-2 border-neutral-800 rounded-lg hover:border-orange-500 hover:bg-orange-900/20 transition-colors text-center"
             >
-              <Users className="w-8 h-8 text-primary mx-auto mb-2" />
-              <p className="font-medium text-gray-800">Kelola User</p>
+              <Users className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
+              <p className="font-medium text-neutral-200">Kelola User</p>
             </a>
             <a
               href="/dashboard/admin/menu"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-center"
+              className="p-4 border-2 border-neutral-800 rounded-lg hover:border-orange-500 hover:bg-orange-900/20 transition-colors text-center"
             >
-              <UtensilsCrossed className="w-8 h-8 text-primary mx-auto mb-2" />
-              <p className="font-medium text-gray-800">Kelola Menu</p>
+              <UtensilsCrossed className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
+              <p className="font-medium text-neutral-200">Kelola Menu</p>
             </a>
             <a
               href="/dashboard/admin/orders"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-center"
+              className="p-4 border-2 border-neutral-800 rounded-lg hover:border-orange-500 hover:bg-orange-900/20 transition-colors text-center"
             >
-              <ShoppingCart className="w-8 h-8 text-primary mx-auto mb-2" />
-              <p className="font-medium text-gray-800">Lihat Pesanan</p>
+              <ShoppingCart className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
+              <p className="font-medium text-neutral-200">Lihat Pesanan</p>
             </a>
             <a
               href="/dashboard/admin/laporan"
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-center"
+              className="p-4 border-2 border-neutral-800 rounded-lg hover:border-orange-500 hover:bg-orange-900/20 transition-colors text-center"
             >
-              <Receipt className="w-8 h-8 text-primary mx-auto mb-2" />
-              <p className="font-medium text-gray-800">Lihat Laporan</p>
+              <Receipt className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
+              <p className="font-medium text-neutral-200">Lihat Laporan</p>
             </a>
           </div>
         </Card>

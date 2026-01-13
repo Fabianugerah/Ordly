@@ -108,7 +108,7 @@ export default function CustomerOrderPage() {
   };
 
   return (
-    <DashboardLayout allowedRoles={['pelanggan']}>
+    <DashboardLayout allowedRoles={['customer']}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

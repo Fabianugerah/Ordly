@@ -170,11 +170,11 @@ export default function AdminUsersPage() {
               placeholder="Cari user..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border bg-transparent dark:text-white border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full pl-10 pr-4 py-2 border bg-transparent dark:text-white border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-md">
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-800">
                 <tr>
@@ -192,7 +192,7 @@ export default function AdminUsersPage() {
                     <td className="p-4 text-sm font-medium">{user.username}</td>
                     <td className="p-4 text-sm">{user.nama_user}</td>
                     <td className="p-4 text-sm">
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-neutral-800 text-blue-800 dark:text-neutral-400 rounded-full text-xs capitalize">
+                      <span className="px-2 py-1 bg-blue-100 dark:bg-neutral-700/60 text-blue-800 dark:text-neutral-300 rounded-full text-xs capitalize">
                         {user.level?.nama_level}
                       </span>
                     </td>
