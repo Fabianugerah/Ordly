@@ -15,7 +15,7 @@ export default function AdminUsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [search, setSearch] = useState('');
-  
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
           nama_user: formData.nama_user,
           id_level: formData.id_level,
         };
-        
+
         // Only update password if provided
         if (formData.password) {
           updateData.password = formData.password;
@@ -162,41 +162,41 @@ export default function AdminUsersPage() {
           </Button>
         </div>
 
-        <Card>
-          <div className="mb-4 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="Cari user..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border bg-transparent dark:text-white border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
-          </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Cari user..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border bg-transparent dark:text-white border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+        </div>
 
-          <div className="overflow-x-auto rounded-md">
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-800">
                 <tr>
-                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">ID</th>
-                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Username</th>
-                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama</th>
-                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Role</th>
-                  <th className="p-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">ID</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Username</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Nama</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Role</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-600 dark:text-neutral-400">Aksi</th>
                 </tr>
-              </thead>
+              </thead>  
               <tbody className="divide-y divide-neutral-800">
                 {filteredUsers.map((user) => (
                   <tr key={user.id_user} className="text-white hover:bg-neutral-800">
-                    <td className="p-4 text-sm">{user.id_user}</td>
-                    <td className="p-4 text-sm font-medium">{user.username}</td>
-                    <td className="p-4 text-sm">{user.nama_user}</td>
-                    <td className="p-4 text-sm">
+                    <td className="p-6 text-sm">{user.id_user}</td>
+                    <td className="p-6 text-sm font-medium">{user.username}</td>
+                    <td className="p-6 text-sm">{user.nama_user}</td>
+                    <td className="p-6 text-sm">
                       <span className="px-2 py-1 bg-blue-100 dark:bg-neutral-700/60 text-blue-800 dark:text-neutral-300 rounded-full text-xs capitalize">
                         {user.level?.nama_level}
                       </span>
                     </td>
-                    <td className="p-4 text-sm">
+                    <td className="p-6 text-sm">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(user)}
@@ -217,7 +217,7 @@ export default function AdminUsersPage() {
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
 
         <Modal
           isOpen={showModal}
@@ -306,6 +306,6 @@ export default function AdminUsersPage() {
           </form>
         </Modal>
       </div>
-    </DashboardLayout>
+    </DashboardLayout >
   );
 }

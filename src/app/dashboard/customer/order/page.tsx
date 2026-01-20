@@ -1,3 +1,4 @@
+// src/app/dashboard/customer/order/page.tsx (UPDATED)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -36,7 +37,6 @@ export default function CustomerOrderPage() {
     try {
       setLoadingTables(true);
       
-      // Fetch all tables
       const { data: allTables, error: tablesError } = await supabase
         .from('meja')
         .select('*')
@@ -44,7 +44,6 @@ export default function CustomerOrderPage() {
 
       if (tablesError) throw tablesError;
 
-      // Fetch active orders to determine table status
       const { data: activeOrders, error: ordersError } = await supabase
         .from('order')
         .select('no_meja')
@@ -52,7 +51,6 @@ export default function CustomerOrderPage() {
 
       if (ordersError) throw ordersError;
 
-      // Mark tables as occupied if they have active orders
       const occupiedTables = activeOrders?.map(order => order.no_meja) || [];
       
       const tablesWithStatus = allTables?.map(table => ({
@@ -63,7 +61,6 @@ export default function CustomerOrderPage() {
       setTables(tablesWithStatus as Table[]);
     } catch (error: any) {
       console.error('Error fetching tables:', error);
-      // If no meja table exists, create default tables
       setTables(generateDefaultTables());
     } finally {
       setLoadingTables(false);
@@ -83,7 +80,6 @@ export default function CustomerOrderPage() {
   };
 
   const handleSubmitOrder = async () => {
-    // Validation
     if (!selectedTable.trim()) {
       setError('Nomor meja harus dipilih!');
       return;
@@ -103,7 +99,6 @@ export default function CustomerOrderPage() {
     setError('');
 
     try {
-      // 1. Insert order
       const orderData = {
         no_meja: selectedTable.trim(),
         tanggal: new Date().toISOString().split('T')[0],
@@ -128,7 +123,6 @@ export default function CustomerOrderPage() {
         throw new Error('Gagal membuat pesanan: Data order tidak ditemukan');
       }
 
-      // 2. Insert detail orders
       const detailOrders = items.map((item) => ({
         id_order: order.id_order,
         id_masakan: item.id_masakan,
@@ -145,15 +139,15 @@ export default function CustomerOrderPage() {
 
       if (detailError) {
         console.error('Detail order error:', detailError);
-        // Rollback: delete the order
         await supabase.from('order').delete().eq('id_order', order.id_order);
         throw new Error('Gagal menyimpan detail pesanan: ' + detailError.message);
       }
 
-      // 3. Success - Clear cart and redirect
       clearCart();
-      alert(`Pesanan berhasil dibuat!\n\nNomor Pesanan: #${order.id_order}\nMeja: ${selectedTable}\nTotal: Rp ${getTotalPrice().toLocaleString('id-ID')}`);
-      router.push('/dashboard/customer/orders');
+      
+      // UPDATED: Redirect to payment page instead of orders
+      router.push(`/dashboard/customer/payment?order=${order.id_order}`);
+      
     } catch (error: any) {
       console.error('Error creating order:', error);
       setError(error.message || 'Terjadi kesalahan saat membuat pesanan');
@@ -175,7 +169,6 @@ export default function CustomerOrderPage() {
   return (
     <DashboardLayout allowedRoles={['customer']}>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -199,7 +192,6 @@ export default function CustomerOrderPage() {
           </Button>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-red-800 dark:text-red-300 text-sm">{error}</p>
@@ -207,9 +199,7 @@ export default function CustomerOrderPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Table Selection & Cart */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Table Selection */}
             <Card>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">Pilih Nomor Meja</h2>
@@ -239,7 +229,6 @@ export default function CustomerOrderPage() {
                 </div>
               </div>
 
-              {/* Table Grid */}
               {loadingTables ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -299,7 +288,6 @@ export default function CustomerOrderPage() {
               )}
             </Card>
 
-            {/* Cart Items */}
             <Card title={`Keranjang Belanja (${items.length} item)`}>
               {items.length === 0 ? (
                 <div className="text-center py-12">
@@ -319,12 +307,10 @@ export default function CustomerOrderPage() {
                       key={item.id_masakan}
                       className="flex items-start gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
                     >
-                      {/* Image */}
                       <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-3xl flex-shrink-0">
                         🍽️
                       </div>
 
-                      {/* Details */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-gray-800 dark:text-white text-lg">
                           {item.nama_masakan}
@@ -339,7 +325,6 @@ export default function CustomerOrderPage() {
                         )}
                       </div>
 
-                      {/* Quantity Controls */}
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex items-center gap-2">
                           <Button
@@ -364,7 +349,6 @@ export default function CustomerOrderPage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">Subtotal</p>
                       </div>
 
-                      {/* Price & Delete */}
                       <div className="flex flex-col items-end gap-2">
                         <p className="font-bold text-gray-800 dark:text-white text-lg">
                           Rp {(item.harga * item.jumlah).toLocaleString('id-ID')}
@@ -380,7 +364,6 @@ export default function CustomerOrderPage() {
                     </div>
                   ))}
 
-                  {/* Clear Cart Button */}
                   <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                     <Button
                       variant="outline"
@@ -401,11 +384,9 @@ export default function CustomerOrderPage() {
             </Card>
           </div>
 
-          {/* Right Column - Order Summary */}
           <div>
             <Card title="Detail Pesanan">
               <div className="space-y-4">
-                {/* Selected Table Info */}
                 <div className="p-4 bg-gradient-to-r from-orange-50 to-blue-50 dark:from-orange-900/20 dark:to-blue-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Nomor Meja <span className="text-red-500">*</span></p>
                   {selectedTable ? (
@@ -420,7 +401,6 @@ export default function CustomerOrderPage() {
                   )}
                 </div>
 
-                {/* Notes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Catatan Tambahan (Opsional)
@@ -435,7 +415,6 @@ export default function CustomerOrderPage() {
                   />
                 </div>
 
-                {/* Order Summary */}
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Jumlah Item</span>
@@ -461,7 +440,6 @@ export default function CustomerOrderPage() {
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   onClick={handleSubmitOrder}
                   disabled={loading || items.length === 0 || !selectedTable}
@@ -475,16 +453,14 @@ export default function CustomerOrderPage() {
                   ) : (
                     <div className="flex items-center justify-center gap-2">
                       <ShoppingCart className="w-5 h-5" />
-                      <span>Buat Pesanan</span>
+                      <span>Lanjut ke Pembayaran</span>
                     </div>
                   )}
                 </Button>
 
-                {/* Info */}
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <p className="text-xs text-blue-800 dark:text-blue-300">
-                    💡 <strong>Info:</strong> Pesanan akan dikirim ke dapur setelah konfirmasi.
-                    Status pesanan dapat dilihat di menu &quot;Pesanan Saya&quot;.
+                    💡 <strong>Info:</strong> Setelah konfirmasi, Anda akan diarahkan ke halaman pembayaran untuk menyelesaikan transaksi.
                   </p>
                 </div>
               </div>

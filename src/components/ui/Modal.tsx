@@ -34,15 +34,15 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+        <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b border-neutral-800 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <h2 className="text-2xl font-bold text-neutral-800 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-neutral-800 rounded-full transition-colors"
           >
-            <X className="w-6 h-6 text-gray-600" />
+            <X className="w-6 h-6 text-neutral-400" />
           </button>
         </div>
 

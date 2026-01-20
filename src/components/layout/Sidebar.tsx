@@ -70,8 +70,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     ],
     waiter: [
       { href: '/dashboard/waiter', icon: LayoutDashboard, label: 'Dashboard' },
-      { href: '/dashboard/waiter/menu', icon: UtensilsCrossed, label: 'Menu' },
-      { href: '/dashboard/waiter/order', icon: ShoppingCart, label: 'Buat Pesanan' },
       { href: '/dashboard/waiter/orders', icon: ShoppingCart, label: 'Daftar Pesanan' },
     ],
     kasir: [
@@ -99,7 +97,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     waiter: [
       { href: '/dashboard/waiter/laporan', icon: FileText, label: 'Laporan Saya' },
     ],
-    kasir: [],
+    kasir: [
+      { href: '/dashboard/kasir/laporan', icon: FileText, label: 'Laporan Saya' },
+    ],
     owner: [
       { href: '/dashboard/owner/laporan', icon: FileText, label: 'Laporan Bisnis' },
     ],
