@@ -6,6 +6,8 @@ import { Search, ShoppingCart, Plus, Minus, Utensils, Star, X } from 'lucide-rea
 import { supabase } from '@/lib/supabase';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
+import Navbar from '@/components/layout/NavbarCustomer';
+import Footer from '@/components/layout/FooterCustomer';
 
 export default function CustomerMenuPage() {
   const router = useRouter();
@@ -72,14 +74,12 @@ export default function CustomerMenuPage() {
       filtered = [...filtered].sort((a, b) => b.harga - a.harga);
     }
 
-    // 🔥 FILTER RANGE HARGA
     filtered = filtered.filter(
       (item) => item.harga >= minPrice && item.harga <= maxPrice
     );
 
     setFilteredMenu(filtered);
   };
-
 
   const getItemQuantity = (id_masakan: number) => {
     return items.find((item) => item.id_masakan === id_masakan)?.jumlah || 0;
@@ -103,46 +103,13 @@ export default function CustomerMenuPage() {
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col">
       <main className="flex-1">
-        {/* NAVBAR */}
-        <header className="top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-
-            {/* Logo */}
-            <div className="flex items-center gap-2 font-extrabold text-xl text-white">
-              CaffeeIn
-            </div>
-
-            {/* Search */}
-            <div className="hidden md:flex flex-1 max-w-xl relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <input
-                placeholder="Search products..."
-                className="w-full pl-10 pr-4 py-2 bg-transparent text-white border border-neutral-800 rounded-full focus:outline-none focus:ring-1 focus:ring-orange-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Right Menu */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/guest/order')}
-                className="relative flex items-center gap-2 bg-white px-4 py-2 rounded-lg hover:bg-neutral-200"
-              >
-                <ShoppingCart className="w-5 h-5" />
-
-                {items.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                    {items.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        </header>
+        {/* NAVBAR - Komponen Terpisah */}
+        <Navbar 
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 mt-16">
-
           {/* Sidebar Filter (Desktop) */}
           <aside className="w-full md:w-64 space-y-8">
             <div>
@@ -158,12 +125,10 @@ export default function CustomerMenuPage() {
                 />
               </div>
             </div>
+
             <div>
               <h3 className="font-semibold text-white mb-3">Harga</h3>
-
               <div className="relative w-full mt-6">
-
-                {/* Track */}
                 <div className="h-1 bg-neutral-700 rounded-full relative">
                   <div
                     className="absolute h-1 bg-neutral-300 rounded-full"
@@ -174,7 +139,6 @@ export default function CustomerMenuPage() {
                   />
                 </div>
 
-                {/* Min Slider */}
                 <input
                   type="range"
                   min={MIN}
@@ -186,7 +150,6 @@ export default function CustomerMenuPage() {
                   className="range-thumb"
                 />
 
-                {/* Max Slider */}
                 <input
                   type="range"
                   min={MIN}
@@ -199,7 +162,6 @@ export default function CustomerMenuPage() {
                 />
               </div>
 
-              {/* From - To */}
               <div className="flex gap-2 mt-4">
                 <input
                   type="number"
@@ -224,10 +186,8 @@ export default function CustomerMenuPage() {
 
             <div className="flex-1 border-t border-neutral-800"></div>
 
-
             <div>
               <h3 className="font-semibold text-white mb-3">Kategori</h3>
-
               <div className="flex flex-col gap-3">
                 {kategoriList.map((kat) => {
                   const checked = selectedCategory === kat.value;
@@ -235,23 +195,15 @@ export default function CustomerMenuPage() {
                   return (
                     <label
                       key={kat.value}
-                      className="
-            flex items-center gap-3 cursor-pointer
-            text-sm select-none
-          "
+                      className="flex items-center gap-3 cursor-pointer text-sm select-none"
                     >
-                      {/* Custom Checkbox */}
                       <div
                         onClick={() => setSelectedCategory(kat.value)}
-                        className={`
-              w-5 h-5 rounded-md border
-              flex items-center justify-center
-              transition-all duration-200
-              ${checked
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${
+                          checked
                             ? 'bg-neutral-200 border-neutral-200'
                             : 'border-neutral-700 hover:border-neutral-400'
-                          }
-            `}
+                        }`}
                       >
                         {checked && (
                           <svg
@@ -270,15 +222,10 @@ export default function CustomerMenuPage() {
                         )}
                       </div>
 
-                      {/* Label */}
                       <span
-                        className={`
-              transition-colors
-              ${checked
-                            ? 'text-white font-medium'
-                            : 'text-neutral-400'
-                          }
-            `}
+                        className={`transition-colors ${
+                          checked ? 'text-white font-medium' : 'text-neutral-400'
+                        }`}
                       >
                         {kat.label}
                       </span>
@@ -287,13 +234,10 @@ export default function CustomerMenuPage() {
                 })}
               </div>
             </div>
-
           </aside>
 
           {/* Main Content */}
           <main className="flex-1">
-
-            {/* Header + Sort */}
             <div className="flex flex-col gap-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
@@ -301,23 +245,16 @@ export default function CustomerMenuPage() {
                 </div>
               </div>
 
-              {/* Sort */}
               <div className="flex justify-between items-center">
                 <p className="text-neutral-400 text-sm mt-2">
                   Ditemukan {filteredMenu.length} menu
                 </p>
                 <div className="flex items-center gap-4">
-                  <p className="text-neutral-400 text-sm">
-                    Urutkan
-                  </p>
+                  <p className="text-neutral-400 text-sm">Urutkan</p>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="
-                  bg-neutral-900 border border-neutral-700
-                  text-sm text-white px-4 py-2 rounded-xl
-                  focus:outline-none focus:ring-1 focus:ring-emerald-500
-                "
+                    className="bg-neutral-900 border border-neutral-700 text-sm text-white px-4 py-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   >
                     <option value="relevancy">Relevancy</option>
                     <option value="price_asc">Harga Termurah</option>
@@ -326,9 +263,7 @@ export default function CustomerMenuPage() {
                 </div>
               </div>
 
-              {/* Active Filters */}
               <div className="flex flex-wrap items-center gap-2 text-sm my-8">
-                {/* Price */}
                 {(minPrice !== MIN || maxPrice !== MAX) && (
                   <span className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 text-white rounded-lg">
                     Price: Rp {minPrice.toLocaleString('id-ID')} – Rp {maxPrice.toLocaleString('id-ID')}
@@ -342,7 +277,6 @@ export default function CustomerMenuPage() {
                   </span>
                 )}
 
-                {/* Category */}
                 {selectedCategory !== 'all' && (
                   <span className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 text-white rounded-lg">
                     Kategori: {selectedCategory}
@@ -353,7 +287,6 @@ export default function CustomerMenuPage() {
                   </span>
                 )}
 
-                {/* Clear all */}
                 {(selectedCategory !== 'all' || minPrice !== MIN || maxPrice !== MAX) && (
                   <button
                     onClick={() => {
@@ -370,27 +303,24 @@ export default function CustomerMenuPage() {
             </div>
 
             {filteredMenu.length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-3xl border border border-neutral-800">
+              <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-800">
                 <p className="text-neutral-400 font-medium">Menu tidak ditemukan</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-20 gap-x-8 mt-16">
                 {filteredMenu.map((item) => {
                   const quantity = getItemQuantity(item.id_masakan);
-                  const hasDiscount = true; // Contoh logika diskon
 
                   return (
                     <div
                       key={item.id_masakan}
-                      className="bg-white dark:bg-neutral-900 rounded-2xl p-6 pt-28 shadow-[0_15px_40px_rgba(0,0,0,0.5)] transition-all duration-300 group relative"
+                      className="bg-white dark:bg-neutral-900 hover:bg-neutral-800 border-2 border-transparent hover:border-neutral-700 rounded-2xl p-6 pt-28 shadow-[0_15px_40px_rgba(0,0,0,0.5)] transition-all duration-300 group relative "
                     >
-
-                      {/* Rating Badge */}
                       <div className="absolute top-6 right-6 flex items-center gap-1 px-2 py-1 rounded-full z-10 shadow-sm">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-[10px] font-bold text-neutral-400">4.8/5</span>
                       </div>
-                      {/* Image Container - Floating style */}
+
                       <div className="absolute -top-14 left-6 transition-transform duration-500">
                         <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-2xl">
                           {item.gambar ? (
@@ -407,24 +337,22 @@ export default function CustomerMenuPage() {
                         </div>
                       </div>
 
-                      {/* Content */}
                       <div className="space-y-1 mb-6">
                         <h3 className="font-semibold text-white text-lg line-clamp-1">
                           {item.nama_masakan}
                         </h3>
                       </div>
 
-                      {/* Price & Add Button */}
                       <div className="flex items-center justify-between mt-auto pt-2">
                         {quantity === 0 ? (
                           <button
                             onClick={() => addItem(item)}
-                            className="py-2 px-4 bg-transparent hover:bg-neutral-800 text-white rounded-xl border-2 border-neutral-800 transition-all shadow-md active:scale-90 flex items-center gap-1 text-sm font-medium"
+                            className="py-2 px-4 bg-transparent group-hover:bg-neutral-700 text-white rounded-xl border-2 border-neutral-800 group-hover:border-neutral-700 transition-all duration-300 shadow-md active:scale-90 flex items-center gap-1 text-sm font-medium"
                           >
                             Add <Plus className="w-4 h-4" />
                           </button>
                         ) : (
-                          <div className="flex items-center gap-2 bg-neutral-100 rounded-xl p-1">
+                          <div className="flex items-center bg-neutral-100 rounded-xl p-1">
                             <button
                               onClick={() => updateQuantity(item.id_masakan, quantity - 1)}
                               className="p-1.5 hover:bg-white rounded-lg transition-colors"
@@ -441,7 +369,9 @@ export default function CustomerMenuPage() {
                           </div>
                         )}
                         <div className="flex flex-col">
-                          <span className="text-xs text-neutral-400 line-through">Rp {(item.harga * 1.2).toLocaleString('id-ID')}</span>
+                          <span className="text-xs text-neutral-400 line-through">
+                            Rp {(item.harga * 1.2).toLocaleString('id-ID')}
+                          </span>
                           <span className="text-lg font-medium text-white">
                             Rp {parseFloat(item.harga).toLocaleString('id-ID')}
                           </span>
@@ -456,56 +386,8 @@ export default function CustomerMenuPage() {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-neutral-900 border-t border-neutral-800 mt-16">
-        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
-
-          {/* Brand */}
-          <div>
-            <h3 className="font-extrabold text-xl mb-3 text-orange-500">CaffeeIn</h3>
-            <p className="text-sm text-neutral-400 leading-relaxed">
-              Fresh & healthy food delivered directly to your table with the best quality ingredients.
-            </p>
-          </div>
-
-          {/* Menu */}
-          <div>
-            <h4 className="font-semibold mb-3 text-white">Menu</h4>
-            <ul className="space-y-2 text-sm text-neutral-500">
-              <li>All Products</li>
-              <li>Makanan</li>
-              <li>Minuman</li>
-              <li>Dessert</li>
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 className="font-semibold mb-3 text-white">Support</h4>
-            <ul className="space-y-2 text-sm text-neutral-500">
-              <li>Help Center</li>
-              <li>Payment</li>
-              <li>Delivery</li>
-              <li>FAQ</li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="font-semibold mb-3 text-white">Company</h4>
-            <ul className="space-y-2 text-sm text-neutral-500">
-              <li>About Us</li>
-              <li>Privacy Policy</li>
-              <li>Terms & Conditions</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="text-center text-xs text-neutral-400 py-4 border-t border-neutral-800">
-          © 2026 CaffeeIn. All rights reserved.
-        </div>
-      </footer>
-
+      {/* FOOTER - Komponen Terpisah */}
+      <Footer />
     </div>
   );
 }
