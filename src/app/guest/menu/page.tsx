@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
+import Select from '@/components/ui/Select'; // Pastikan path ini sesuai dengan lokasi file Select.tsx Anda
 import { Search, ShoppingCart, Plus, Minus, Utensils, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/NavbarCustomer';
 import Footer from '@/components/layout/FooterCustomer';
+
+// Opsi untuk dropdown sorting
+const sortOptions = [
+  { value: 'relevancy', label: 'Relevancy' },
+  { value: 'price_asc', label: 'Harga Termurah' },
+  { value: 'price_desc', label: 'Harga Termahal' },
+];
 
 export default function CustomerMenuPage() {
   const router = useRouter();
@@ -30,7 +38,7 @@ export default function CustomerMenuPage() {
 
   useEffect(() => {
     filterMenu();
-  }, [menu, searchTerm, selectedCategory, minPrice, maxPrice]);
+  }, [menu, searchTerm, selectedCategory, minPrice, maxPrice, sortBy]); // Tambahkan sortBy ke dependency array
 
   const fetchMenu = async () => {
     try {
@@ -52,31 +60,35 @@ export default function CustomerMenuPage() {
   };
 
   const filterMenu = () => {
-    let filtered = menu;
+    let filtered = [...menu]; // Gunakan spread operator di awal untuk cloning array agar aman
 
+    // 1. Filter Search
     if (searchTerm) {
       filtered = filtered.filter((item) =>
         item.nama_masakan.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
+    // 2. Filter Kategori
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(
         (item) => item.kategori.toLowerCase() === selectedCategory
       );
     }
 
-    if (sortBy === 'price_asc') {
-      filtered = [...filtered].sort((a, b) => a.harga - b.harga);
-    }
-
-    if (sortBy === 'price_desc') {
-      filtered = [...filtered].sort((a, b) => b.harga - a.harga);
-    }
-
+    // 3. Filter Range Harga
     filtered = filtered.filter(
       (item) => item.harga >= minPrice && item.harga <= maxPrice
     );
+
+    // 4. Sorting (Logika Diperkuat)
+    if (sortBy === 'price_asc') {
+      // Menggunakan Number() untuk memastikan harga dibaca sebagai angka
+      filtered.sort((a, b) => Number(a.harga) - Number(b.harga));
+    } else if (sortBy === 'price_desc') {
+      filtered.sort((a, b) => Number(b.harga) - Number(a.harga));
+    }
+    // Jika 'relevancy', biarkan urutan default (misal abjad dari fetchMenu)
 
     setFilteredMenu(filtered);
   };
@@ -103,16 +115,16 @@ export default function CustomerMenuPage() {
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col">
       <main className="flex-1">
-        {/* NAVBAR - Komponen Terpisah */}
         <Navbar 
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
         />
 
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 mt-16">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 mt-16 px-4 md:px-0">
           {/* Sidebar Filter (Desktop) */}
           <aside className="w-full md:w-64 space-y-8">
-            <div>
+            {/* ... (Kode Sidebar Filter Harga & Kategori tetap sama) ... */}
+             <div>
               <h3 className="font-semibold text-neutral-800 dark:text-white mb-4 text-2xl">Filter</h3>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -245,24 +257,29 @@ export default function CustomerMenuPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center">
+              {/* --- BAGIAN YANG DIUPDATE START --- */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <p className="text-neutral-400 text-sm mt-2">
                   Ditemukan {filteredMenu.length} menu
                 </p>
-                <div className="flex items-center gap-4">
-                  <p className="text-neutral-400 text-sm">Urutkan</p>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="bg-neutral-900 border border-neutral-700 text-sm text-white px-4 py-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  >
-                    <option value="relevancy">Relevancy</option>
-                    <option value="price_asc">Harga Termurah</option>
-                    <option value="price_desc">Harga Termahal</option>
-                  </select>
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <p className="text-neutral-400 text-sm whitespace-nowrap">Urutkan</p>
+                  
+                  {/* Container width diset agar Select tidak terlalu lebar */}
+                  <div className="w-full sm:w-44"> 
+                    <Select
+                      options={sortOptions}
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      // Kita override style background agar match dengan tema dark page ini
+                      className="bg-neutral-900 border-neutral-700 text-white"
+                    />
+                  </div>
                 </div>
               </div>
+              {/* --- BAGIAN YANG DIUPDATE END --- */}
 
+              {/* Tag Filters (tetap sama) */}
               <div className="flex flex-wrap items-center gap-2 text-sm my-8">
                 {(minPrice !== MIN || maxPrice !== MAX) && (
                   <span className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 text-white rounded-lg">
@@ -302,6 +319,7 @@ export default function CustomerMenuPage() {
               </div>
             </div>
 
+            {/* Menu Grid (tetap sama) */}
             {filteredMenu.length === 0 ? (
               <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-800">
                 <p className="text-neutral-400 font-medium">Menu tidak ditemukan</p>
@@ -316,13 +334,14 @@ export default function CustomerMenuPage() {
                       key={item.id_masakan}
                       className="bg-white dark:bg-neutral-900 hover:bg-neutral-800 border-2 border-transparent hover:border-neutral-700 rounded-2xl p-6 pt-28 shadow-[0_15px_40px_rgba(0,0,0,0.5)] transition-all duration-300 group relative "
                     >
+                      {/* ... (Isi card tetap sama) ... */}
                       <div className="absolute top-6 right-6 flex items-center gap-1 px-2 py-1 rounded-full z-10 shadow-sm">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-[10px] font-bold text-neutral-400">4.8/5</span>
                       </div>
 
-                      <div className="absolute -top-14 left-6 transition-transform duration-500">
-                        <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden shadow-2xl">
+                      <div className="absolute -top-14 left-2 transition-all duration-300">
+                        <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-xl overflow-hidden group-hover:scale-105 transition-all duration-300">
                           {item.gambar ? (
                             <img
                               src={item.gambar}
@@ -341,6 +360,9 @@ export default function CustomerMenuPage() {
                         <h3 className="font-semibold text-white text-lg line-clamp-1">
                           {item.nama_masakan}
                         </h3>
+                        <p className="text-neutral-600 text-sm line-clamp-2">
+                          {item.deskripsi}
+                        </p>
                       </div>
 
                       <div className="flex items-center justify-between mt-auto pt-2">
@@ -386,7 +408,6 @@ export default function CustomerMenuPage() {
         </div>
       </main>
 
-      {/* FOOTER - Komponen Terpisah */}
       <Footer />
     </div>
   );

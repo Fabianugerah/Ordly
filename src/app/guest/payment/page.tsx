@@ -19,7 +19,6 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { paymentService, PAYMENT_METHODS } from '@/lib/services/paymentService';
-import Image from 'next/image';
 
 export default function CustomerPaymentPage() {
   const router = useRouter();
@@ -95,7 +94,7 @@ export default function CustomerPaymentPage() {
         id_order: order.id_order,
         id_user: user?.id_user!,
         total_bayar: order.total_harga,
-        metode_pembayaran: method.value, // Use database-compatible value
+        metode_pembayaran: method.value,
         payment_type: method.type,
         payment_details: {
           provider: selectedMethod,
@@ -109,7 +108,6 @@ export default function CustomerPaymentPage() {
       setPaymentInfo(response.payment_info);
 
       // Auto-redirect to receipt after 3 seconds for demo
-      // In production, wait for actual payment confirmation
       setTimeout(() => {
         router.push(`/guest/receipt?transaksi=${response.transaksi.id_transaksi}`);
       }, 3000);
@@ -143,11 +141,9 @@ export default function CustomerPaymentPage() {
 
   if (loading) {
     return (
-
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
-
     );
   }
 
@@ -156,7 +152,6 @@ export default function CustomerPaymentPage() {
   }
 
   return (
-
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -195,10 +190,10 @@ export default function CustomerPaymentPage() {
               </p>
             </div>
 
-            {/* QRIS QR Code */}
+            {/* QRIS QR Code - Menggunakan img tag biasa untuk menghindari error Next.js Image */}
             {paymentInfo.qr_code && (
               <div className="bg-white p-6 rounded-xl inline-block">
-                <Image
+                <img
                   src={paymentInfo.qr_code}
                   alt="QR Code"
                   width={300}
@@ -269,10 +264,11 @@ export default function CustomerPaymentPage() {
                       <button
                         key={method.id}
                         onClick={() => setSelectedMethod(method.id)}
-                        className={`p-4 rounded-xl border-2 transition-all text-left ${selectedMethod === method.id
+                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                          selectedMethod === method.id
                             ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                          }`}
+                        }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="text-3xl">{method.icon}</div>
@@ -304,10 +300,11 @@ export default function CustomerPaymentPage() {
                       <button
                         key={method.id}
                         onClick={() => setSelectedMethod(method.id)}
-                        className={`p-4 rounded-xl border-2 transition-all ${selectedMethod === method.id
+                        className={`p-4 rounded-xl border-2 transition-all ${
+                          selectedMethod === method.id
                             ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                          }`}
+                        }`}
                       >
                         <div className="text-center">
                           <div className="text-3xl mb-2">{method.icon}</div>
@@ -331,10 +328,11 @@ export default function CustomerPaymentPage() {
                       <button
                         key={method.id}
                         onClick={() => setSelectedMethod(method.id)}
-                        className={`p-4 rounded-xl border-2 transition-all text-left ${selectedMethod === method.id
+                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                          selectedMethod === method.id
                             ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                          }`}
+                        }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="text-3xl">{method.icon}</div>
@@ -421,6 +419,5 @@ export default function CustomerPaymentPage() {
         </div>
       )}
     </div>
-
   );
 }

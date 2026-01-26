@@ -4,21 +4,45 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
+import SuccessModal from '@/components/ui/SuccessModal';
 import { supabase } from '@/lib/supabase';
-import { Plus, Search, Edit, Trash2, Upload, X, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Upload, X, AlertCircle, MoreVertical } from 'lucide-react'; // Tambah MoreVertical
+import { MENU_CATEGORIES, MENU_STATUS } from '@/constants/options';
+
+// Opsi untuk Filter Dropdown
+const FILTER_CATEGORIES = [
+  { value: 'all', label: 'Semua Kategori' },
+  { value: 'makanan', label: 'Makanan' },
+  { value: 'minuman', label: 'Minuman' },
+  { value: 'dessert', label: 'Dessert' },
+];
 
 export default function MenuManagementPage() {
   const [menus, setMenus] = useState<any[]>([]);
   const [filteredMenus, setFilteredMenus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter & Search State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Form Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<any>(null);
+  
+  // Action Menu State (NEW: Untuk melacak ID menu yang sedang terbuka)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // Upload State
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadError, setUploadError] = useState('');
+
+  // Success Modal State
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [formData, setFormData] = useState({
     nama_masakan: '',
@@ -36,6 +60,18 @@ export default function MenuManagementPage() {
   useEffect(() => {
     filterMenus();
   }, [menus, searchTerm, selectedCategory]);
+
+  // Effect untuk menutup menu saat klik di luar (NEW)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Jika klik bukan pada elemen trigger menu, tutup menu
+      if (openMenuId !== null && !(event.target as Element).closest('.action-menu-trigger')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
 
   const fetchMenus = async () => {
     try {
@@ -79,64 +115,54 @@ export default function MenuManagementPage() {
 
     setUploadError('');
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setUploadError('File harus berupa gambar (JPG, PNG, GIF, dll)');
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Ukuran file maksimal 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadError('Ukuran file maksimal 20MB');
       return;
     }
 
     try {
       setUploading(true);
-
-      // Create unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `menu/${fileName}`;
 
-      console.log('Uploading to:', filePath);
-
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        if (uploadError.message.includes('Bucket not found')) {
-          setUploadError('❌ Bucket "images" belum dibuat di Supabase Storage! Silakan buat bucket terlebih dahulu.');
-        } else {
-          setUploadError(`Upload gagal: ${uploadError.message}`);
-        }
-        return;
-      }
+      if (uploadError) throw uploadError;
 
-      console.log('Upload success:', uploadData);
-
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('images')
         .getPublicUrl(filePath);
 
-      console.log('Public URL:', publicUrl);
-
       setFormData({ ...formData, gambar: publicUrl });
       setImagePreview(publicUrl);
-      setUploadError('');
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      setUploadError(`Terjadi kesalahan: ${error.message}`);
+      setUploadError(`Upload gagal: ${error.message}`);
     } finally {
       setUploading(false);
     }
+  };
+
+  const removeImage = async () => {
+    if (formData.gambar) {
+      try {
+        const filePath = formData.gambar.split('/').slice(-2).join('/');
+        await supabase.storage.from('images').remove([filePath]);
+      } catch (error) {
+        console.error('Error removing image:', error);
+      }
+    }
+    setFormData({ ...formData, gambar: '' });
+    setImagePreview('');
+    setUploadError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,7 +182,6 @@ export default function MenuManagementPage() {
       };
 
       if (editingMenu) {
-        // Delete old image if exists and different from new one
         if (editingMenu.gambar && editingMenu.gambar !== formData.gambar) {
           const oldPath = editingMenu.gambar.split('/').slice(-2).join('/');
           await supabase.storage.from('images').remove([oldPath]);
@@ -168,22 +193,46 @@ export default function MenuManagementPage() {
           .eq('id_masakan', editingMenu.id_masakan);
 
         if (error) throw error;
-        alert('Menu berhasil diupdate!');
+        setSuccessMessage('Menu berhasil diperbarui!');
       } else {
         const { error } = await supabase.from('masakan').insert([menuData]);
-
         if (error) throw error;
-        alert('Menu berhasil ditambahkan!');
+        setSuccessMessage('Menu baru berhasil ditambahkan!');
       }
 
       setIsModalOpen(false);
       resetForm();
       fetchMenus();
+      setIsSuccessModalOpen(true);
+
     } catch (error: any) {
       console.error('Error saving menu:', error);
       alert('Gagal menyimpan menu: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number, gambar?: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus menu ini?')) return;
+
+    try {
+      if (gambar) {
+        const filePath = gambar.split('/').slice(-2).join('/');
+        await supabase.storage.from('images').remove([filePath]);
+      }
+
+      const { error } = await supabase.from('masakan').delete().eq('id_masakan', id);
+
+      if (error) throw error;
+
+      fetchMenus();
+      setSuccessMessage('Menu berhasil dihapus dari database.');
+      setIsSuccessModalOpen(true);
+
+    } catch (error: any) {
+      console.error('Error deleting menu:', error);
+      alert('Gagal menghapus menu: ' + error.message);
     }
   };
 
@@ -199,27 +248,6 @@ export default function MenuManagementPage() {
     });
     setImagePreview(menu.gambar || '');
     setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: number, gambar?: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus menu ini?')) return;
-
-    try {
-      // Delete image from storage if exists
-      if (gambar) {
-        const filePath = gambar.split('/').slice(-2).join('/');
-        await supabase.storage.from('images').remove([filePath]);
-      }
-
-      const { error } = await supabase.from('masakan').delete().eq('id_masakan', id);
-
-      if (error) throw error;
-      alert('Menu berhasil dihapus!');
-      fetchMenus();
-    } catch (error: any) {
-      console.error('Error deleting menu:', error);
-      alert('Gagal menghapus menu: ' + error.message);
-    }
   };
 
   const resetForm = () => {
@@ -243,20 +271,6 @@ export default function MenuManagementPage() {
     });
   };
 
-  const removeImage = async () => {
-    if (formData.gambar) {
-      try {
-        const filePath = formData.gambar.split('/').slice(-2).join('/');
-        await supabase.storage.from('images').remove([filePath]);
-      } catch (error) {
-        console.error('Error removing image:', error);
-      }
-    }
-    setFormData({ ...formData, gambar: '' });
-    setImagePreview('');
-    setUploadError('');
-  };
-
   if (loading && menus.length === 0) {
     return (
       <DashboardLayout allowedRoles={['administrator']}>
@@ -270,101 +284,85 @@ export default function MenuManagementPage() {
   return (
     <DashboardLayout allowedRoles={['administrator']}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        
+        {/* --- Header --- */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Manajemen Menu</h1>
-            <p className="text-neutral-600 mt-1">Kelola menu makanan dan minuman</p>
+            <p className="text-neutral-600 mt-1">Kelola menu makanan dan minuman restoran</p>
           </div>
           <Button
             onClick={() => {
               resetForm();
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto justify-center"
           >
             <Plus className="w-5 h-5" />
             Tambah Menu
           </Button>
         </div>
 
-        {/* Search & Filter */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-md p-4">
-          <div className="flex flex-col md:flex-row gap-3 items-center">
-            <div className="relative flex-1 w-full">
+        {/* --- Search & Filter --- */}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
               <input
                 type="text"
-                placeholder="Cari menu..."
+                placeholder="Cari nama menu..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-transparent dark:text-white border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full pl-12 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
               />
             </div>
-
-            <div className="flex gap-2 flex-wrap md:flex-nowrap">
-              {['all', 'makanan', 'minuman', 'dessert'].map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap ${
-                    selectedCategory === category
-                      ? 'bg-neutral-800 text-white shadow-md'
-                      : 'bg-neutral-100 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-800'
-                  }`}
-                >
-                  {category === 'all' ? 'Semua' : category.charAt(0).toUpperCase() + category.slice(1)}
-                </button>
-              ))}
+            <div className="w-full md:w-64">
+              <Select
+                options={FILTER_CATEGORIES}
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="!bg-neutral-50 dark:!bg-neutral-800 !py-2.5"
+              />
             </div>
           </div>
         </div>
 
-        {/* Table */}
+        {/* --- Table --- */}
         <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto"> 
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                    Gambar
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                    Nama Menu
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                    Kategori
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                    Harga
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">
-                    Aksi
-                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Gambar</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Nama Menu</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Kategori</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Harga</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {filteredMenus.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-neutral-500 dark:text-neutral-400">
-                      Tidak ada menu ditemukan
+                    <td colSpan={6} className="px-6 py-12 text-center text-neutral-500 dark:text-neutral-400">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-3xl">🍲</span>
+                        <p>Tidak ada menu ditemukan</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   filteredMenus.map((menu) => (
-                    <tr key={menu.id_masakan} className="hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                    <tr key={menu.id_masakan} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                       <td className="px-6 py-4">
                         {menu.gambar ? (
                           <img
                             src={menu.gambar}
                             alt={menu.nama_masakan}
-                            className="w-16 h-16 object-cover rounded-lg shadow-md"
+                            className="w-16 h-16"
                           />
                         ) : (
-                          <div className="w-16 h-16 bg-neutral-200 dark:bg-neutral-700 rounded-lg flex items-center justify-center text-2xl">
+                          <div className="w-14 h-14 bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center text-xl border border-neutral-200 dark:border-neutral-700">
                             🍽️
                           </div>
                         )}
@@ -373,47 +371,78 @@ export default function MenuManagementPage() {
                         <div>
                           <p className="font-semibold text-neutral-900 dark:text-white">{menu.nama_masakan}</p>
                           {menu.deskripsi && (
-                            <p className="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">{menu.deskripsi}</p>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-1 mt-0.5">{menu.deskripsi}</p>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-blue-100 dark:bg-neutral-700/60 text-blue-800 dark:text-neutral-300 rounded-full text-xs capitalize">
+                        <span className="px-2.5 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 rounded-md text-xs font-medium capitalize border border-neutral-200 dark:border-neutral-700">
                           {menu.kategori}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-bold text-neutral-900 dark:text-white">
+                        <span className="font-medium text-neutral-900 dark:text-white tabular-nums">
                           Rp {parseFloat(menu.harga).toLocaleString('id-ID')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-3 py-1 text-xs rounded-full ${
+                          className={`px-2.5 py-1 text-xs font-medium rounded-full border ${
                             menu.status_masakan === 'tersedia'
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                              : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
                           }`}
                         >
                           {menu.status_masakan === 'tersedia' ? 'Tersedia' : 'Habis'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
+                      
+                      {/* --- KOLOM AKSI (DROPDOWN MENU) --- */}
+                      <td className="px-6 py-4 text-center relative">
+                        <div className="relative inline-block action-menu-trigger">
+                          {/* Trigger Button (3 Dots) */}
                           <button
-                            onClick={() => handleEdit(menu)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                            title="Edit"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Mencegah event click tembus ke document
+                              setOpenMenuId(openMenuId === menu.id_masakan ? null : menu.id_masakan);
+                            }}
+                            className={`p-2 rounded-lg transition-colors ${
+                                openMenuId === menu.id_masakan 
+                                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white' 
+                                : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300'
+                            }`}
                           >
-                            <Edit className="w-4 h-4" />
+                            <MoreVertical className="w-5 h-5" />
                           </button>
-                          <button
-                            onClick={() => handleDelete(menu.id_masakan, menu.gambar)}
-                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                          {/* Dropdown Menu */}
+                          {openMenuId === menu.id_masakan && (
+                            <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(menu);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-3 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-2 text-neutral-700 dark:text-neutral-300 transition-colors"
+                              >
+                                <Edit className="w-4 h-4" /> 
+                                Edit
+                              </button>
+                              <div className="h-px bg-neutral-100 dark:bg-neutral-800 mx-2"></div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(menu.id_masakan, menu.gambar);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-3 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" /> 
+                                Hapus
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -424,7 +453,7 @@ export default function MenuManagementPage() {
           </div>
         </div>
 
-        {/* Modal Add/Edit */}
+        {/* --- Form Modal (Add/Edit) --- */}
         <Modal
           isOpen={isModalOpen}
           onClose={() => {
@@ -434,9 +463,9 @@ export default function MenuManagementPage() {
           title={editingMenu ? 'Edit Menu' : 'Tambah Menu Baru'}
         >
           <div className="space-y-4">
-            {/* Image Upload */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
+             {/* ... (Konten Modal Sama Seperti Sebelumnya) ... */}
+             <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-2">
                 Gambar Menu <span className="text-red-500">*</span>
               </label>
               
@@ -448,7 +477,7 @@ export default function MenuManagementPage() {
               )}
 
               {imagePreview ? (
-                <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-neutral-200">
+                <div className="relative w-full h-64 rounded-xl overflow-hidden border-2 border-neutral-200 dark:border-neutral-700">
                   <img
                     src={imagePreview}
                     alt="Preview"
@@ -457,19 +486,21 @@ export default function MenuManagementPage() {
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    className="absolute top-2 right-2 p-2 bg-red-500/90 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-neutral-300 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors bg-neutral-50 hover:bg-neutral-100">
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-all bg-transparent group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-12 h-12 text-neutral-400 mb-3" />
-                    <p className="mb-2 text-sm text-neutral-500">
-                      <span className="font-semibold">Klik untuk upload gambar</span>
+                    <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <Upload className="w-6 h-6 text-neutral-400 group-hover:text-orange-500" />
+                    </div>
+                    <p className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
+                      <span className="font-semibold text-neutral-700 dark:text-neutral-300">Klik untuk upload</span>
                     </p>
-                    <p className="text-xs text-neutral-500">PNG, JPG, GIF (MAX. 5MB)</p>
+                    <p className="text-xs text-neutral-400">PNG, JPG (MAX. 20MB)</p>
                   </div>
                   <input
                     type="file"
@@ -482,8 +513,8 @@ export default function MenuManagementPage() {
               )}
               
               {uploading && (
-                <div className="flex items-center gap-2 mt-2 text-sm text-neutral-600">
-                  <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                <div className="flex items-center gap-2 mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                  <div className="animate-spin w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full"></div>
                   Mengupload gambar...
                 </div>
               )}
@@ -499,23 +530,14 @@ export default function MenuManagementPage() {
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  Kategori
-                </label>
-                <select
-                  name="kategori"
-                  value={formData.kategori}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                >
-                  <option value="makanan">Makanan</option>
-                  <option value="minuman">Minuman</option>
-                  <option value="dessert">Dessert</option>
-                </select>
-              </div>
-
+              <Select
+                label="Kategori"
+                name="kategori"
+                value={formData.kategori}
+                onChange={handleChange}
+                options={MENU_CATEGORIES}
+                required
+              />
               <Input
                 label="Harga"
                 name="harga"
@@ -527,33 +549,26 @@ export default function MenuManagementPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Status
-              </label>
-              <select
-                name="status_masakan"
-                value={formData.status_masakan}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              >
-                <option value="tersedia">Tersedia</option>
-                <option value="habis">Habis</option>
-              </select>
-            </div>
+            <Select
+              label="Status"
+              name="status_masakan"
+              value={formData.status_masakan}
+              onChange={handleChange}
+              options={MENU_STATUS}
+              required
+            />
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-1">
                 Deskripsi
               </label>
               <textarea
                 name="deskripsi"
                 value={formData.deskripsi}
                 onChange={handleChange}
-                placeholder="Deskripsi menu..."
+                placeholder="Deskripsi singkat menu..."
                 rows={3}
-                className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-neutral-400"
               />
             </div>
 
@@ -563,7 +578,7 @@ export default function MenuManagementPage() {
                 className="flex-1" 
                 disabled={loading || uploading || !formData.gambar}
               >
-                {loading ? 'Menyimpan...' : editingMenu ? 'Update Menu' : 'Tambah Menu'}
+                {loading ? 'Menyimpan...' : editingMenu ? 'Simpan Perubahan' : 'Tambah Menu'}
               </Button>
               <Button
                 onClick={() => {
@@ -578,7 +593,15 @@ export default function MenuManagementPage() {
             </div>
           </div>
         </Modal>
+
+        {/* --- Success Modal --- */}
+        <SuccessModal
+          isOpen={isSuccessModalOpen}
+          onClose={() => setIsSuccessModalOpen(false)}
+          message={successMessage}
+        />
+
       </div>
     </DashboardLayout>
   );
-} 
+}
