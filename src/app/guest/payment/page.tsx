@@ -1,26 +1,25 @@
-// src/app/guest/payment/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react'; // Tambah import Suspense
 import { useRouter, useSearchParams } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import {
   ArrowLeft,
-  Smartphone,
-  Wallet,
-  Building2,
   Copy,
   CheckCircle,
   Clock,
-  AlertCircle,
-  QrCode
+  QrCode,
+  Wallet,
+  Building2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { paymentService, PAYMENT_METHODS } from '@/lib/services/paymentService';
 
-export default function CustomerPaymentPage() {
+// 1. Ubah nama komponen utama lama menjadi "PaymentContent"
+//    (Hapus "export default" dari sini)
+function PaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAuthStore((state) => state.user);
@@ -55,7 +54,6 @@ export default function CustomerPaymentPage() {
 
       if (error) throw error;
 
-      // Check if already paid
       const { data: transaksi } = await supabase
         .from('transaksi')
         .select('*')
@@ -63,7 +61,6 @@ export default function CustomerPaymentPage() {
         .single();
 
       if (transaksi) {
-        // Already paid, redirect to receipt
         router.push(`/guest/receipt?transaksi=${transaksi.id_transaksi}`);
         return;
       }
@@ -95,7 +92,7 @@ export default function CustomerPaymentPage() {
         id_user: user?.id_user!,
         total_bayar: order.total_harga,
         metode_pembayaran: method.value,
-        payment_type: method.type,
+        payment_type: method.type as 'qris' | 'ewallet' | 'bank_transfer',
         payment_details: {
           provider: selectedMethod,
         },
@@ -107,7 +104,6 @@ export default function CustomerPaymentPage() {
 
       setPaymentInfo(response.payment_info);
 
-      // Auto-redirect to receipt after 3 seconds for demo
       setTimeout(() => {
         router.push(`/guest/receipt?transaksi=${response.transaksi.id_transaksi}`);
       }, 3000);
@@ -124,19 +120,6 @@ export default function CustomerPaymentPage() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const getMethodIcon = (type: string) => {
-    switch (type) {
-      case 'qris':
-        return <QrCode className="w-6 h-6" />;
-      case 'ewallet':
-        return <Wallet className="w-6 h-6" />;
-      case 'bank_transfer':
-        return <Building2 className="w-6 h-6" />;
-      default:
-        return <Smartphone className="w-6 h-6" />;
-    }
   };
 
   if (loading) {
@@ -171,7 +154,6 @@ export default function CustomerPaymentPage() {
         </div>
       </div>
 
-      {/* Payment Info Display (if processing) */}
       {paymentInfo && (
         <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
           <div className="text-center space-y-4">
@@ -190,7 +172,6 @@ export default function CustomerPaymentPage() {
               </p>
             </div>
 
-            {/* QRIS QR Code - Menggunakan img tag biasa untuk menghindari error Next.js Image */}
             {paymentInfo.qr_code && (
               <div className="bg-white p-6 rounded-xl inline-block">
                 <img
@@ -206,7 +187,6 @@ export default function CustomerPaymentPage() {
               </div>
             )}
 
-            {/* Virtual Account */}
             {paymentInfo.virtual_account && (
               <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -230,7 +210,6 @@ export default function CustomerPaymentPage() {
               </div>
             )}
 
-            {/* E-wallet Deep Link */}
             {paymentInfo.deep_link && (
               <Button
                 onClick={() => window.location.href = paymentInfo.deep_link}
@@ -247,13 +226,11 @@ export default function CustomerPaymentPage() {
         </Card>
       )}
 
-      {/* Payment Methods Selection (if not processing) */}
       {!paymentInfo && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <Card title="Pilih Metode Pembayaran">
               <div className="space-y-4">
-                {/* QRIS */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <QrCode className="w-4 h-4" />
@@ -289,7 +266,6 @@ export default function CustomerPaymentPage() {
                   </div>
                 </div>
 
-                {/* E-Wallet */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <Wallet className="w-4 h-4" />
@@ -317,7 +293,6 @@ export default function CustomerPaymentPage() {
                   </div>
                 </div>
 
-                {/* Bank Transfer */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <Building2 className="w-4 h-4" />
@@ -356,7 +331,6 @@ export default function CustomerPaymentPage() {
             </Card>
           </div>
 
-          {/* Order Summary */}
           <div>
             <Card title="Ringkasan Pesanan">
               <div className="space-y-4">
@@ -403,21 +377,24 @@ export default function CustomerPaymentPage() {
                     )}
                   </Button>
                 </div>
-
-                {/* Info */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                  <div className="flex gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-800 dark:text-blue-300">
-                      Setelah memilih metode pembayaran, Anda akan mendapatkan instruksi untuk menyelesaikan pembayaran.
-                    </p>
-                  </div>
-                </div>
               </div>
             </Card>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// 2. Export Default Component baru yang membungkus konten dengan Suspense
+export default function CustomerPaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }

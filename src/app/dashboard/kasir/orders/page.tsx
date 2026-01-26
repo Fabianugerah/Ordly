@@ -75,16 +75,6 @@ export default function KasirOrdersPage() {
     setFilteredOrders(filtered);
   };
 
-  const checkIfPaid = async (orderId: number) => {
-    const { data } = await supabase
-      .from('transaksi')
-      .select('id_transaksi')
-      .eq('id_order', orderId)
-      .single();
-
-    return !!data;
-  };
-
   const getStatusBadge = (status: string) => {
     const styles = {
       pending: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -273,7 +263,7 @@ export default function KasirOrdersPage() {
             setSelectedOrder(null);
           }}
           title={`Detail Order #${selectedOrder?.id_order}`}
-          size="lg"
+          // size="lg"  <-- HAPUS BARIS INI
         >
           {selectedOrder && (
             <div className="space-y-4">

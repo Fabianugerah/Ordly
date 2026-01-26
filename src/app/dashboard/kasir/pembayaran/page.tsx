@@ -1,17 +1,17 @@
-// src/app/dashboard/kasir/pembayaran/page.tsx (UPDATED)
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // 1. Import Suspense
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { CreditCard, Banknote, Smartphone, Search, CheckCircle, QrCode, Wallet, Building2 } from 'lucide-react';
+import { CreditCard, Banknote, Smartphone, Search, CheckCircle, QrCode, Wallet, Building2, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function KasirPembayaranPage() {
+// 2. Ubah nama function menjadi PembayaranContent (bukan default export)
+function PembayaranContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAuthStore((state) => state.user);
@@ -38,7 +38,7 @@ export default function KasirPembayaranPage() {
         handleSelectOrder(order);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, orders]); // Tambahkan orders ke dependency agar saat data load, param dicek ulang
 
   const fetchOrders = async () => {
     try {
@@ -134,34 +134,36 @@ export default function KasirPembayaranPage() {
       order.no_meja.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Payment method details
   const paymentMethods = [
     {
       id: 'tunai',
       name: 'Tunai',
       icon: Banknote,
       color: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-900/20',
-      borderColor: 'border-green-200 dark:border-green-800',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
+      borderColor: 'border-green-500',
+      activeBg: 'bg-green-50 dark:bg-green-900/20',
       description: 'Pembayaran cash langsung'
     },
     {
       id: 'debit',
-      name: 'Debit/Transfer',
+      name: 'Debit / Transfer',
       icon: CreditCard,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-      borderColor: 'border-blue-200 dark:border-blue-800',
-      description: 'Kartu debit atau transfer bank'
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+      borderColor: 'border-blue-500',
+      activeBg: 'bg-blue-50 dark:bg-blue-900/20',
+      description: 'Kartu Debit atau Transfer Bank'
     },
     {
       id: 'qris',
-      name: 'QRIS/E-Wallet',
+      name: 'QRIS / E-Wallet',
       icon: QrCode,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-      borderColor: 'border-purple-200 dark:border-purple-800',
-      description: 'Scan QR atau e-wallet digital'
+      bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+      borderColor: 'border-purple-500',
+      activeBg: 'bg-purple-50 dark:bg-purple-900/20',
+      description: 'Scan QR atau E-Wallet'
     },
   ];
 
@@ -179,74 +181,92 @@ export default function KasirPembayaranPage() {
     <DashboardLayout allowedRoles={['kasir']}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Proses Pembayaran</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Kelola pembayaran pesanan customer</p>
+          <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Kasir</h1>
+          <p className="text-neutral-600 dark:text-neutral-400 mt-1">Pilih pesanan untuk memproses pembayaran</p>
         </div>
 
         <Card>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
             <input
               type="text"
-              placeholder="Cari order ID atau meja..."
+              placeholder="Cari Order ID atau Nomor Meja..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
             />
           </div>
         </Card>
 
         {filteredOrders.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <CheckCircle className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400">Tidak ada pesanan menunggu pembayaran</p>
+          <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800">
+            <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+               <CheckCircle className="w-8 h-8 text-neutral-400" />
             </div>
-          </Card>
+            <p className="text-neutral-500 dark:text-neutral-400 font-medium">Tidak ada pesanan yang belum dibayar</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOrders.map((order) => (
-              <Card key={order.id_order} className="hover:shadow-lg transition-shadow">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-800 dark:text-white">Order #{order.id_order}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Meja {order.no_meja}</p>
+              <div 
+                key={order.id_order} 
+                onClick={() => handleSelectOrder(order)} 
+                className="cursor-pointer"
+              >
+                <Card className="hover:shadow-lg transition-shadow group h-full">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-lg text-neutral-800 dark:text-white group-hover:text-orange-500 transition-colors">
+                          Order #{order.id_order}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="px-2.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-medium rounded-md border border-neutral-200 dark:border-neutral-700">
+                            Meja {order.no_meja}
+                          </span>
+                          <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-md border border-blue-100 dark:border-blue-800">
+                            {order.status_order}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full">
-                      {order.status_order}
-                    </span>
-                  </div>
 
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Tanggal</span>
-                      <span className="text-gray-900 dark:text-white">{new Date(order.tanggal).toLocaleDateString('id-ID')}</span>
+                    <div className="py-4 border-t border-b border-neutral-100 dark:border-neutral-800 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-neutral-500 dark:text-neutral-400">Tanggal</span>
+                        <span className="text-neutral-900 dark:text-white font-medium">{new Date(order.tanggal).toLocaleDateString('id-ID')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-neutral-500 dark:text-neutral-400">Waiter</span>
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3 text-neutral-400" />
+                          <span className="text-neutral-900 dark:text-white font-medium">{order.users?.nama_user || '-'}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-neutral-500 dark:text-neutral-400">Total Items</span>
+                        <span className="text-neutral-900 dark:text-white font-medium">{order.detail_order?.length || 0} item</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Items</span>
-                      <span className="text-gray-900 dark:text-white">{order.detail_order?.length || 0}</span>
-                    </div>
-                  </div>
 
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Total</span>
-                      <span className="text-2xl font-bold text-primary">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Total Tagihan</span>
+                      <span className="text-xl font-bold text-neutral-900 dark:text-white">
                         Rp {parseFloat(order.total_harga).toLocaleString('id-ID')}
                       </span>
                     </div>
-                    <Button onClick={() => handleSelectOrder(order)} className="w-full">
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Bayar Sekarang
+                    
+                    <Button className="w-full mt-2">
+                      Proses Pembayaran
                     </Button>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </div>
             ))}
           </div>
         )}
 
+        {/* Modal Pembayaran */}
         <Modal
           isOpen={showPaymentModal}
           onClose={() => {
@@ -257,30 +277,33 @@ export default function KasirPembayaranPage() {
         >
           {selectedOrder && (
             <div className="space-y-6">
-              {/* Order Summary */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="text-center mb-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Pembayaran</p>
-                  <p className="text-4xl font-bold text-primary">
+              
+              <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
+                <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-black opacity-10 rounded-full blur-xl"></div>
+                
+                <div className="relative z-10 text-center">
+                  <p className="text-orange-100 text-sm font-medium mb-1">Total Harus Dibayar</p>
+                  <p className="text-4xl font-bold tracking-tight">
                     Rp {parseFloat(selectedOrder.total_harga).toLocaleString('id-ID')}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="text-center">
-                    <p className="text-gray-600 dark:text-gray-400">Meja</p>
-                    <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.no_meja}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-gray-600 dark:text-gray-400">Items</p>
-                    <p className="font-semibold text-gray-900 dark:text-white">{selectedOrder.detail_order?.length || 0}</p>
-                  </div>
+                
+                <div className="relative z-10 mt-6 grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
+                   <div className="text-center">
+                      <p className="text-orange-100 text-xs uppercase tracking-wider">Meja</p>
+                      <p className="font-semibold text-lg">{selectedOrder.no_meja}</p>
+                   </div>
+                   <div className="text-center border-l border-white/20">
+                      <p className="text-orange-100 text-xs uppercase tracking-wider">Items</p>
+                      <p className="font-semibold text-lg">{selectedOrder.detail_order?.length} Menu</p>
+                   </div>
                 </div>
               </div>
 
-              {/* Payment Method Selection - Updated Design */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Metode Pembayaran
+                <label className="block text-sm font-semibold text-neutral-700 dark:text-white mb-3 ml-1">
+                  Pilih Metode Pembayaran
                 </label>
                 <div className="space-y-3">
                   {paymentMethods.map((method) => {
@@ -291,66 +314,57 @@ export default function KasirPembayaranPage() {
                       <button
                         key={method.id}
                         onClick={() => setPaymentData({ ...paymentData, metode_pembayaran: method.id })}
-                        className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                          isSelected
-                            ? `${method.borderColor} ${method.bgColor}`
-                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
+                        className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left relative overflow-hidden group
+                          ${isSelected 
+                            ? `${method.borderColor} ${method.activeBg}` 
+                            : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-600'
+                          }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-12 h-12 rounded-lg ${method.bgColor} flex items-center justify-center`}>
+                        <div className="flex items-center gap-4 relative z-10">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${isSelected ? 'bg-white shadow-sm' : method.bgColor}`}>
                             <Icon className={`w-6 h-6 ${method.color}`} />
                           </div>
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-900 dark:text-white">{method.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            <p className={`font-bold ${isSelected ? 'text-neutral-900 dark:text-white' : 'text-neutral-700 dark:text-neutral-200'}`}>
+                                {method.name}
+                            </p>
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
                               {method.description}
                             </p>
                           </div>
-                          {isSelected && (
-                            <CheckCircle className={`w-5 h-5 ${method.color}`} />
-                          )}
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all
+                             ${isSelected ? `${method.borderColor} bg-current text-white` : 'border-neutral-300 dark:border-neutral-600'}`}>
+                             {isSelected && <div className={`w-2.5 h-2.5 rounded-full ${method.color.replace('text-', 'bg-')}`} />}
+                          </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-
-                {/* Info untuk metode non-tunai */}
-                {paymentData.metode_pembayaran !== 'tunai' && (
-                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-xs text-blue-800 dark:text-blue-300">
-                      💡 <strong>Info:</strong> {
-                        paymentData.metode_pembayaran === 'qris' 
-                          ? 'Termasuk pembayaran via GoPay, OVO, DANA, atau scan QRIS lainnya'
-                          : 'Termasuk transfer bank (BCA, Mandiri, BNI, dll) atau kartu debit'
-                      }
-                    </p>
-                  </div>
-                )}
               </div>
 
-              {/* Cash Payment Details */}
               {paymentData.metode_pembayaran === 'tunai' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Uang Diterima
+                <div className="bg-neutral-50 dark:bg-neutral-800/50 p-5 rounded-xl border border-neutral-200 dark:border-neutral-700 animate-in slide-in-from-top-2">
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-2">
+                    Nominal Uang Diterima
                   </label>
-                  <input
-                    type="number"
-                    value={paymentData.uang_diterima}
-                    onChange={(e) =>
-                      setPaymentData({ ...paymentData, uang_diterima: e.target.value })
-                    }
-                    placeholder="Masukkan jumlah uang diterima"
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-semibold">Rp</span>
+                    <input
+                      type="number"
+                      value={paymentData.uang_diterima}
+                      onChange={(e) => setPaymentData({ ...paymentData, uang_diterima: e.target.value })}
+                      placeholder="0"
+                      className="w-full pl-12 pr-4 py-3 text-lg font-bold border border-neutral-300 dark:border-neutral-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                      autoFocus
+                    />
+                  </div>
 
                   {paymentData.uang_diterima && (
-                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
                       <div className="flex justify-between items-center">
-                        <span className="text-lg font-medium text-gray-700 dark:text-gray-300">Kembalian</span>
-                        <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        <span className="text-neutral-600 dark:text-neutral-400 font-medium">Kembalian Customer</span>
+                        <span className={`text-xl font-bold ${calculateKembalian() > 0 ? 'text-green-600 dark:text-green-400' : 'text-neutral-900 dark:text-white'}`}>
                           Rp {calculateKembalian().toLocaleString('id-ID')}
                         </span>
                       </div>
@@ -359,20 +373,7 @@ export default function KasirPembayaranPage() {
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleProcessPayment}
-                  disabled={
-                    processing ||
-                    (paymentData.metode_pembayaran === 'tunai' &&
-                      parseFloat(paymentData.uang_diterima || '0') <
-                        parseFloat(selectedOrder.total_harga))
-                  }
-                  className="flex-1"
-                >
-                  {processing ? 'Memproses...' : 'Proses Pembayaran'}
-                </Button>
+              <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -380,8 +381,20 @@ export default function KasirPembayaranPage() {
                     setSelectedOrder(null);
                   }}
                   disabled={processing}
+                  className="flex-1 py-3"
                 >
                   Batal
+                </Button>
+                <Button
+                  onClick={handleProcessPayment}
+                  disabled={
+                    processing ||
+                    (paymentData.metode_pembayaran === 'tunai' &&
+                      parseFloat(paymentData.uang_diterima || '0') < parseFloat(selectedOrder.total_harga))
+                  }
+                  className="flex-[2] py-3 text-lg"
+                >
+                  {processing ? 'Memproses...' : 'Konfirmasi Bayar'}
                 </Button>
               </div>
             </div>
@@ -389,5 +402,18 @@ export default function KasirPembayaranPage() {
         </Modal>
       </div>
     </DashboardLayout>
+  );
+}
+
+// 3. Export Default Baru (Suspense Wrapper)
+export default function KasirPembayaranPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    }>
+      <PembayaranContent />
+    </Suspense>
   );
 }

@@ -1,12 +1,12 @@
-// src/app/guest/receipt/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // 1. Import Suspense
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import DigitalReceipt from '@/components/payment/DigitalReceipt';
 
-export default function ReceiptPage() {
+// 2. Ubah nama komponen utama menjadi ReceiptContent (bukan default export)
+function ReceiptContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [transaksi, setTransaksi] = useState<any>(null);
@@ -68,5 +68,18 @@ export default function ReceiptPage() {
       transaksi={transaksi}
       onClose={() => router.push('/guest/menu')}
     />
+  );
+}
+
+// 3. Export Default komponen baru yang membungkus ReceiptContent dengan Suspense
+export default function ReceiptPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <ReceiptContent />
+    </Suspense>
   );
 }

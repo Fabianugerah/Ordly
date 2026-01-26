@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, UserCircle2, UtensilsCrossed } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/lib/services/authService';
 
@@ -66,8 +66,10 @@ export default function LoginPage() {
     try {
       const response = await authService.login(trimmedUsername, trimmedPassword);
 
-      if (!response.success) {
+      // PERBAIKAN DI SINI: Tambahkan pengecekan !response.user
+      if (!response.success || !response.user) {
         setError(response.error || 'Login gagal');
+        setLoading(false); // Pastikan loading dimatikan
         return;
       }
 
@@ -101,17 +103,8 @@ export default function LoginPage() {
   // Handler untuk Guest Access
   const handleGuestAccess = () => {
     // Create temporary guest session
-    const guestUser = {
-      id_user: 0, // Guest ID
-      username: 'guest',
-      nama_user: 'Tamu',
-      id_level: 5, // Customer level
-      level: {
-        id_level: 5,
-        nama_level: 'customer'
-      }
-    };
-
+    // const guestUser = { ... } // Tidak perlu deklarasi variable jika tidak dipakai langsung di sini
+    
     // Set guest as temporary user (without saving to localStorage permanently)
     sessionStorage.setItem('guest_mode', 'true');
     router.push('/guest/menu');
