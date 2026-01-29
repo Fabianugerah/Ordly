@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import Select from '@/components/ui/Select'; // Menggunakan komponen Select
+import Select from '@/components/ui/Select';
 import {
   Receipt, Search, Eye, CreditCard, Banknote, Smartphone, RefreshCw,
-  Calendar, ChevronLeft, ChevronRight, XCircle, MoreVertical, Printer
+  Calendar, ChevronLeft, ChevronRight, XCircle, MoreVertical, Printer, ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -21,41 +22,49 @@ const PAYMENT_OPTIONS = [
 ];
 
 export default function AdminTransaksiPage() {
+  const router = useRouter();
   const [transaksi, setTransaksi] = useState<any[]>([]);
   const [filteredTransaksi, setFilteredTransaksi] = useState<any[]>([]);
   const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // Jumlah item per halaman
+
   // Modal State
   const [showDetailModal, setShowDetailModal] = useState(false);
-  
+
   // Filter State
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [search, setSearch] = useState('');
   const [metodeBayar, setMetodeBayar] = useState('Semua');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  
+
   // Date Picker State
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const datePickerRef = useRef<HTMLDivElement>(null);
 
-  // Action Menu State (Kebab Menu)
+  // Action Menu State
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const daysOfWeek = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
   useEffect(() => { fetchTransaksi(); }, []);
-  useEffect(() => { filterTransaksi(); }, [search, metodeBayar, selectedDate, transaksi]);
-  
+
+  // Update: Reset ke halaman 1 saat filter berubah
+  useEffect(() => {
+    filterTransaksi();
+    setCurrentPage(1);
+  }, [search, metodeBayar, selectedDate, transaksi]);
+
   // Close Date Picker & Action Menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Date Picker Logic
       if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
         setShowDatePicker(false);
       }
-      // Action Menu Logic
       if (openMenuId !== null && !(event.target as Element).closest('.action-menu-trigger')) {
         setOpenMenuId(null);
       }
@@ -71,14 +80,21 @@ export default function AdminTransaksiPage() {
         .from('transaksi')
         .select(`
           *,
-          users:id_user(nama_user, username, level(nama_level)),
-          order:id_order(
+          users:id_user (
+            nama_user,
+            username,
+            level (
+              nama_level
+            )
+          ),
+          order:id_order (
             no_meja,
             tanggal,
+            nama_pelanggan,
             status_order,
-            detail_order(
+            detail_order (
               *,
-              masakan(nama_masakan, kategori)
+              masakan (nama_masakan, kategori)
             )
           )
         `)
@@ -88,8 +104,8 @@ export default function AdminTransaksiPage() {
       setTransaksi(data || []);
       setFilteredTransaksi(data || []);
     } catch (error: any) {
-      console.error('Error:', error);
-      alert('Error: ' + error.message);
+      console.error('Error fetching transactions:', error);
+      alert('Gagal memuat data transaksi: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -100,7 +116,8 @@ export default function AdminTransaksiPage() {
     if (search) {
       filtered = filtered.filter(t =>
         t.id_transaksi.toString().includes(search) ||
-        t.order?.no_meja.toLowerCase().includes(search.toLowerCase())
+        t.order?.no_meja.toLowerCase().includes(search.toLowerCase()) ||
+        t.order?.nama_pelanggan?.toLowerCase().includes(search.toLowerCase())
       );
     }
     if (metodeBayar !== 'Semua') {
@@ -116,6 +133,14 @@ export default function AdminTransaksiPage() {
     }
     setFilteredTransaksi(filtered);
   };
+
+  // --- LOGIC PAGINATION ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredTransaksi.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredTransaksi.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -133,6 +158,10 @@ export default function AdminTransaksiPage() {
     setShowDatePicker(false);
   };
 
+  const handlePrintReceipt = (transaksiId: number) => {
+    window.open(`/guest/receipt?transaksi=${transaksiId}`, '_blank');
+  };
+
   const getPaymentIcon = (metode: string) => {
     const icons = { tunai: Banknote, debit: CreditCard, qris: Smartphone };
     const Icon = icons[metode.toLowerCase() as keyof typeof icons] || Receipt;
@@ -146,6 +175,21 @@ export default function AdminTransaksiPage() {
       qris: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800',
     };
     return styles[metode.toLowerCase() as keyof typeof styles] || 'bg-neutral-100 text-neutral-800';
+  };
+
+  const getRoleLabel = (user: any) => {
+    if (!user) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-sm text-neutral-600 dark:text-neutral-400">
+          Customer
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-1 text-sm text-neutral-600 dark:text-neutral-400">
+        {user.level?.nama_level || 'User'}
+      </span>
+    );
   };
 
   const stats = {
@@ -168,7 +212,7 @@ export default function AdminTransaksiPage() {
   return (
     <DashboardLayout allowedRoles={['administrator']}>
       <div className="space-y-6">
-        
+
         {/* --- Header --- */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -201,13 +245,13 @@ export default function AdminTransaksiPage() {
         {/* --- Filters Section --- */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm p-4">
           <div className="flex flex-col lg:flex-row gap-4">
-            
+
             {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
               <input
                 type="text"
-                placeholder="Cari ID transaksi atau meja..."
+                placeholder="Cari ID, Meja, atau Nama Pelanggan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-12 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
@@ -215,101 +259,100 @@ export default function AdminTransaksiPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-                
-                {/* Date Picker (Left-aligned dropdown) */}
-                <div className="relative w-full sm:w-auto" ref={datePickerRef}>
-                  <button
-                    onClick={() => setShowDatePicker(!showDatePicker)}
-                    className="w-full sm:w-64 flex items-center justify-between gap-2 px-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors bg-white dark:bg-neutral-800 min-w-[200px]"
-                  >
-                    <div className="flex items-center gap-2 text-neutral-900 dark:text-white">
-                        <Calendar className="w-5 h-5 text-neutral-400" />
-                        <span className="text-sm font-medium">
-                          {selectedDate ? selectedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Filter Tanggal'}
-                        </span>
-                    </div>
-                    {selectedDate && (
-                      <div
-                        onClick={(e) => { e.stopPropagation(); setSelectedDate(null); }}
-                        className="text-neutral-400 hover:text-neutral-600 cursor-pointer"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </div>
-                    )}
-                  </button>
 
-                  {showDatePicker && (
-                    <div className="absolute top-full mt-4 left-0 z-50 bg-white dark:bg-neutral-900/60 backdrop-blur-md rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-800 p-4 min-w-[320px] animate-in fade-in zoom-in-95 duration-100 origin-top-left">
-                      <div className="flex items-center justify-between mb-4">
-                        <button
-                          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                          className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
-                        >
-                          <ChevronLeft className="w-5 h-5 text-neutral-900 dark:text-white" />
-                        </button>
-                        <span className="font-bold text-neutral-900 dark:text-white">
-                          {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                        </span>
-                        <button
-                          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                          className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
-                        >
-                          <ChevronRight className="w-5 h-5 text-neutral-900 dark:text-white" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-7 gap-1 mb-2">
-                        {daysOfWeek.map(day => (
-                          <div key={day} className="text-center text-xs font-medium text-neutral-500 dark:text-neutral-400 py-2">
-                            {day}
-                          </div>
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-7 gap-1">
-                        {getDaysInMonth(currentMonth).map((date, i) => {
-                          if (!date) return <div key={`e-${i}`} className="aspect-square" />;
-                          const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-                          const isToday = date.toDateString() === new Date().toDateString();
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => handleDateClick(date)}
-                              className={`aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
-                                isSelected
-                                  ? 'bg-orange-500 text-white shadow-md'
-                                  : isToday
+              {/* Date Picker */}
+              <div className="relative w-full sm:w-auto" ref={datePickerRef}>
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="w-full sm:w-64 flex items-center justify-between gap-2 px-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors bg-white dark:bg-neutral-800 min-w-[200px]"
+                >
+                  <div className="flex items-center gap-2 text-neutral-900 dark:text-white">
+                    <Calendar className="w-5 h-5 text-neutral-400" />
+                    <span className="text-sm font-medium">
+                      {selectedDate ? selectedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Filter Tanggal'}
+                    </span>
+                  </div>
+                  {selectedDate && (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setSelectedDate(null); }}
+                      className="text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </div>
+                  )}
+                </button>
+
+                {showDatePicker && (
+                  <div className="absolute top-full mt-4 left-0 z-50 bg-white dark:bg-neutral-900/60 backdrop-blur-md rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-800 p-4 min-w-[320px] animate-in fade-in zoom-in-95 duration-100 origin-top-left">
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+                        className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-neutral-900 dark:text-white" />
+                      </button>
+                      <span className="font-bold text-neutral-900 dark:text-white">
+                        {months[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                      </span>
+                      <button
+                        onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+                        className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg"
+                      >
+                        <ChevronRight className="w-5 h-5 text-neutral-900 dark:text-white" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {daysOfWeek.map(day => (
+                        <div key={day} className="text-center text-xs font-medium text-neutral-500 dark:text-neutral-400 py-2">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {getDaysInMonth(currentMonth).map((date, i) => {
+                        if (!date) return <div key={`e-${i}`} className="aspect-square" />;
+                        const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+                        const isToday = date.toDateString() === new Date().toDateString();
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleDateClick(date)}
+                            className={`aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all ${isSelected
+                                ? 'bg-orange-500 text-white shadow-md'
+                                : isToday
                                   ? 'bg-blue-50 dark:bg-orange-900/20 text-orange-500 border border-orange-500'
                                   : 'hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
                               }`}
-                            >
-                              {date.getDate()}
-                            </button>
-                          );
-                        })}
-                      </div>
+                          >
+                            {date.getDate()}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
 
-                {/* Metode Pembayaran Dropdown (Menggantikan tombol) */}
-                <div className="w-full sm:w-48">
-                    <Select
-                        options={PAYMENT_OPTIONS}
-                        value={metodeBayar}
-                        onChange={(e) => setMetodeBayar(e.target.value)}
-                        className="!bg-neutral-50 dark:!bg-neutral-800 !py-2.5"
-                    />
-                </div>
+              {/* Metode Pembayaran Dropdown */}
+              <div className="w-full sm:w-48">
+                <Select
+                  options={PAYMENT_OPTIONS}
+                  value={metodeBayar}
+                  onChange={(e) => setMetodeBayar(e.target.value)}
+                  className="!bg-neutral-50 dark:!bg-neutral-800 !py-2.5"
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* --- Table --- */}
-        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800">
-          <div className="overflow-x-auto">
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col">
+          <div className="overflow-x-auto min-h-[400px]">
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
-                  {['ID', 'Tanggal', 'Order ID', 'Meja', 'Kasir', 'Metode', 'Total', 'Aksi'].map(h => (
+                  {['ID', 'Tanggal', 'Pelanggan', 'Meja', 'Role', 'Metode', 'Total', 'Aksi'].map(h => (
                     <th key={h} className={`px-6 py-4 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider ${h === 'Aksi' ? 'text-center' : ''}`}>
                       {h}
                     </th>
@@ -317,7 +360,7 @@ export default function AdminTransaksiPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {filteredTransaksi.length === 0 ? (
+                {currentItems.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center text-neutral-500 dark:text-neutral-400">
                       <div className="flex flex-col items-center gap-2">
@@ -327,7 +370,7 @@ export default function AdminTransaksiPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTransaksi.map(t => (
+                  currentItems.map(t => (
                     <tr key={t.id_transaksi} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900 dark:text-white">
                         #{t.id_transaksi}
@@ -335,15 +378,18 @@ export default function AdminTransaksiPage() {
                       <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
                         {new Date(t.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
-                        #{t.id_order}
+                      <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400 font-medium">
+                        {t.order?.nama_pelanggan || 'GUEST'}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-neutral-900 dark:text-white">
                         Meja {t.order?.no_meja || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
-                        {t.users?.nama_user || '-'}
+
+                      {/* --- KOLOM ROLE --- */}
+                      <td className="px-6 py-4 text-sm">
+                        {getRoleLabel(t.users)}
                       </td>
+
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getPaymentBadge(t.metode_pembayaran)}`}>
                           {getPaymentIcon(t.metode_pembayaran)}
@@ -353,52 +399,51 @@ export default function AdminTransaksiPage() {
                       <td className="px-6 py-4 text-sm font-bold text-green-600 tabular-nums">
                         Rp {parseFloat(t.total_bayar).toLocaleString('id-ID')}
                       </td>
-                      
+
                       {/* --- Action Menu (Kebab) --- */}
                       <td className="px-6 py-4 text-center relative">
                         <div className="relative inline-block action-menu-trigger">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuId(openMenuId === t.id_transaksi ? null : t.id_transaksi);
-                                }}
-                                className={`p-2 rounded-lg transition-colors ${
-                                    openMenuId === t.id_transaksi 
-                                    ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white' 
-                                    : 'text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300'
-                                }`}
-                            >
-                                <MoreVertical className="w-5 h-5" />
-                            </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === t.id_transaksi ? null : t.id_transaksi);
+                            }}
+                            className={`p-2 rounded-lg transition-colors ${openMenuId === t.id_transaksi
+                                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
+                                : 'text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300'
+                              }`}
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
 
-                            {openMenuId === t.id_transaksi && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedTransaksi(t);
-                                            setShowDetailModal(true);
-                                            setOpenMenuId(null);
-                                        }}
-                                        className="w-full text-left px-4 py-3 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-3 text-neutral-700 dark:text-neutral-300 transition-colors"
-                                    >
-                                        <Eye className="w-4 h-4 text-blue-500" /> 
-                                        Lihat Detail
-                                    </button>
-                                    <div className="h-px bg-neutral-100 dark:bg-neutral-800 mx-2"></div>
-                                    <button
-                                        onClick={() => {
-                                           // Logika cetak struk bisa ditambahkan di sini
-                                           alert("Fitur cetak struk sedang diproses...");
-                                           setOpenMenuId(null);
-                                        }}
-                                        className="w-full text-left px-4 py-3 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-3 text-neutral-700 dark:text-neutral-300 transition-colors"
-                                    >
-                                        <Printer className="w-4 h-4 text-neutral-500" /> 
-                                        Cetak Struk
-                                    </button>
-                                </div>
-                            )}
+                          {openMenuId === t.id_transaksi && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 origin-top-right">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTransaksi(t);
+                                  setShowDetailModal(true);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-3 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-3 text-neutral-700 dark:text-neutral-300 transition-colors"
+                              >
+                                <Eye className="w-4 h-4 text-blue-500" />
+                                Lihat Detail
+                              </button>
+                              <div className="h-px bg-neutral-100 dark:bg-neutral-800 mx-2"></div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePrintReceipt(t.id_transaksi);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full text-left px-4 py-3 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-3 text-neutral-700 dark:text-neutral-300 transition-colors"
+                              >
+                                <Printer className="w-4 h-4 text-neutral-500" />
+                                Cetak Struk
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -407,6 +452,60 @@ export default function AdminTransaksiPage() {
               </tbody>
             </table>
           </div>
+
+          {/* --- FOOTER PAGINATION --- */}
+          {filteredTransaksi.length > 0 && (
+            <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                Menampilkan <span className="font-medium text-neutral-900 dark:text-white">{indexOfFirstItem + 1}</span> sampai <span className="font-medium text-neutral-900 dark:text-white">{Math.min(indexOfLastItem, filteredTransaksi.length)}</span> dari <span className="font-medium text-neutral-900 dark:text-white">{filteredTransaksi.length}</span> data
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="!h-10 !w-10 !p-0 flex items-center justify-center"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+
+                {/* Logic Simple Page Numbers */}
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(num => num === 1 || num === totalPages || (num >= currentPage - 1 && num <= currentPage + 1))
+                    .map((number, index, array) => {
+                      const showEllipsis = index > 0 && number > array[index - 1] + 1;
+                      return (
+                        <div key={number} className="flex items-center">
+                          {showEllipsis && <span className="px-2 text-neutral-400">...</span>}
+                          <button
+                            onClick={() => paginate(number)}
+                            className={`h-8 w-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === number
+                                ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                                : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                              }`}
+                          >
+                            {number}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="!h-10 !w-10 !p-0 flex items-center justify-center"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* --- Detail Modal --- */}
@@ -457,8 +556,10 @@ export default function AdminTransaksiPage() {
                   <p className="font-medium text-neutral-900 dark:text-white">#{selectedTransaksi.id_transaksi}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5">ID Order</p>
-                  <p className="font-medium text-neutral-900 dark:text-white">#{selectedTransaksi.id_order}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5">Pelanggan</p>
+                  <p className="font-medium text-neutral-900 dark:text-white uppercase">
+                    {selectedTransaksi.order?.nama_pelanggan || 'GUEST'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5">Tanggal</p>
@@ -478,11 +579,13 @@ export default function AdminTransaksiPage() {
                     {selectedTransaksi.users?.nama_user || '-'}
                   </p>
                 </div>
+
+                {/* --- Role Detail di Modal --- */}
                 <div>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-0.5">Role</p>
-                  <p className="font-medium capitalize text-neutral-900 dark:text-white">
-                    {selectedTransaksi.users?.level?.nama_level || '-'}
-                  </p>
+                  <div className="flex items-center">
+                    {getRoleLabel(selectedTransaksi.users)}
+                  </div>
                 </div>
               </div>
 
@@ -515,9 +618,13 @@ export default function AdminTransaksiPage() {
 
               {/* Footer Actions */}
               <div className="pt-2">
-                <Button className="w-full flex items-center justify-center gap-2 py-3">
-                  <Receipt className="w-4 h-4" />
-                  Cetak Struk Pembayaran
+                <Button
+                  onClick={() => handlePrintReceipt(selectedTransaksi.id_transaksi)}
+                  className="w-full flex items-center justify-center gap-2 py-3"
+                >
+                  <Printer className="w-4 h-4" />
+                  Cetak Struk & PDF
+                  <ExternalLink className="w-3 h-3 opacity-70" />
                 </Button>
               </div>
             </div>

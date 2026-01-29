@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -8,7 +8,7 @@ import Select from '@/components/ui/Select';
 import Modal from '@/components/ui/Modal';
 import SuccessModal from '@/components/ui/SuccessModal';
 import { supabase } from '@/lib/supabase';
-import { Plus, Search, Edit, Trash2, Upload, X, AlertCircle, MoreVertical } from 'lucide-react'; // Tambah MoreVertical
+import { Plus, Search, Edit, Trash2, Upload, X, AlertCircle, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MENU_CATEGORIES, MENU_STATUS } from '@/constants/options';
 
 // Opsi untuk Filter Dropdown
@@ -23,7 +23,11 @@ export default function MenuManagementPage() {
   const [menus, setMenus] = useState<any[]>([]);
   const [filteredMenus, setFilteredMenus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // Jumlah item per halaman
+
   // Filter & Search State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -31,8 +35,8 @@ export default function MenuManagementPage() {
   // Form Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<any>(null);
-  
-  // Action Menu State (NEW: Untuk melacak ID menu yang sedang terbuka)
+
+  // Action Menu State
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   // Upload State
@@ -57,14 +61,14 @@ export default function MenuManagementPage() {
     fetchMenus();
   }, []);
 
+  // Update: Reset halaman ke 1 saat filter berubah
   useEffect(() => {
     filterMenus();
+    setCurrentPage(1);
   }, [menus, searchTerm, selectedCategory]);
 
-  // Effect untuk menutup menu saat klik di luar (NEW)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Jika klik bukan pada elemen trigger menu, tutup menu
       if (openMenuId !== null && !(event.target as Element).closest('.action-menu-trigger')) {
         setOpenMenuId(null);
       }
@@ -108,6 +112,14 @@ export default function MenuManagementPage() {
 
     setFilteredMenus(filtered);
   };
+
+  // --- LOGIC PAGINATION ---
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredMenus.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredMenus.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,7 +179,7 @@ export default function MenuManagementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.gambar) {
       setUploadError('Gambar harus diupload!');
       return;
@@ -284,7 +296,7 @@ export default function MenuManagementPage() {
   return (
     <DashboardLayout allowedRoles={['administrator']}>
       <div className="space-y-6">
-        
+
         {/* --- Header --- */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -328,8 +340,8 @@ export default function MenuManagementPage() {
         </div>
 
         {/* --- Table --- */}
-        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800">
-          <div className="overflow-x-auto"> 
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col">
+          <div className="overflow-x-auto min-h-[400px]">
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
@@ -342,7 +354,7 @@ export default function MenuManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {filteredMenus.length === 0 ? (
+                {currentItems.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-neutral-500 dark:text-neutral-400">
                       <div className="flex flex-col items-center gap-2">
@@ -352,7 +364,7 @@ export default function MenuManagementPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredMenus.map((menu) => (
+                  currentItems.map((menu) => (
                     <tr key={menu.id_masakan} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
                       <td className="px-6 py-4">
                         {menu.gambar ? (
@@ -387,16 +399,15 @@ export default function MenuManagementPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2.5 py-1 text-xs font-medium rounded-full border ${
-                            menu.status_masakan === 'tersedia'
+                          className={`px-2.5 py-1 text-xs font-medium rounded-full border ${menu.status_masakan === 'tersedia'
                               ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
                               : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
-                          }`}
+                            }`}
                         >
                           {menu.status_masakan === 'tersedia' ? 'Tersedia' : 'Habis'}
                         </span>
                       </td>
-                      
+
                       {/* --- KOLOM AKSI (DROPDOWN MENU) --- */}
                       <td className="px-6 py-4 text-center relative">
                         <div className="relative inline-block action-menu-trigger">
@@ -406,11 +417,10 @@ export default function MenuManagementPage() {
                               e.stopPropagation(); // Mencegah event click tembus ke document
                               setOpenMenuId(openMenuId === menu.id_masakan ? null : menu.id_masakan);
                             }}
-                            className={`p-2 rounded-lg transition-colors ${
-                                openMenuId === menu.id_masakan 
-                                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white' 
+                            className={`p-2 rounded-lg transition-colors ${openMenuId === menu.id_masakan
+                                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
                                 : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-700 dark:hover:text-neutral-300'
-                            }`}
+                              }`}
                           >
                             <MoreVertical className="w-5 h-5" />
                           </button>
@@ -426,7 +436,7 @@ export default function MenuManagementPage() {
                                 }}
                                 className="w-full text-left px-4 py-3 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-2 text-neutral-700 dark:text-neutral-300 transition-colors"
                               >
-                                <Edit className="w-4 h-4" /> 
+                                <Edit className="w-4 h-4" />
                                 Edit
                               </button>
                               <div className="h-px bg-neutral-100 dark:bg-neutral-800 mx-2"></div>
@@ -438,7 +448,7 @@ export default function MenuManagementPage() {
                                 }}
                                 className="w-full text-left px-4 py-3 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 transition-colors"
                               >
-                                <Trash2 className="w-4 h-4" /> 
+                                <Trash2 className="w-4 h-4" />
                                 Hapus
                               </button>
                             </div>
@@ -451,6 +461,61 @@ export default function MenuManagementPage() {
               </tbody>
             </table>
           </div>
+
+          {/* --- FOOTER PAGINATION (ADDED) --- */}
+          {filteredMenus.length > 0 && (
+            <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                Menampilkan <span className="font-medium text-neutral-900 dark:text-white">{indexOfFirstItem + 1}</span> sampai <span className="font-medium text-neutral-900 dark:text-white">{Math.min(indexOfLastItem, filteredMenus.length)}</span> dari <span className="font-medium text-neutral-900 dark:text-white">{filteredMenus.length}</span> menu
+              </p>
+
+              <div className="flex items-center gap-2">
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="!h-10 !w-10 !p-0 flex items-center justify-center"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+
+                {/* Logic Page Numbers */}
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(num => num === 1 || num === totalPages || (num >= currentPage - 1 && num <= currentPage + 1))
+                    .map((number, index, array) => {
+                      const showEllipsis = index > 0 && number > array[index - 1] + 1;
+                      return (
+                        <div key={number} className="flex items-center gap-1">
+                          {showEllipsis && <span className="px-2 text-neutral-400">...</span>}
+                          <button
+                            onClick={() => paginate(number)}
+                            className={`h-10 w-10 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === number
+                                ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                                : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                              }`}
+                          >
+                            {number}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="!h-10 !w-10 !p-0 flex items-center justify-center"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* --- Form Modal (Add/Edit) --- */}
@@ -463,12 +528,12 @@ export default function MenuManagementPage() {
           title={editingMenu ? 'Edit Menu' : 'Tambah Menu Baru'}
         >
           <div className="space-y-4">
-             {/* ... (Konten Modal Sama Seperti Sebelumnya) ... */}
-             <div>
+            {/* ... (Konten Modal Sama Persis Seperti Sebelumnya) ... */}
+            <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-2">
                 Gambar Menu <span className="text-red-500">*</span>
               </label>
-              
+
               {uploadError && (
                 <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -495,7 +560,7 @@ export default function MenuManagementPage() {
                 <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-all bg-transparent group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                        <Upload className="w-6 h-6 text-neutral-400 group-hover:text-orange-500" />
+                      <Upload className="w-6 h-6 text-neutral-400 group-hover:text-orange-500" />
                     </div>
                     <p className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
                       <span className="font-semibold text-neutral-700 dark:text-neutral-300">Klik untuk upload</span>
@@ -511,7 +576,7 @@ export default function MenuManagementPage() {
                   />
                 </label>
               )}
-              
+
               {uploading && (
                 <div className="flex items-center gap-2 mt-2 text-sm text-neutral-600 dark:text-neutral-400">
                   <div className="animate-spin w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full"></div>
@@ -573,9 +638,9 @@ export default function MenuManagementPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button 
+              <Button
                 onClick={handleSubmit}
-                className="flex-1" 
+                className="flex-1"
                 disabled={loading || uploading || !formData.gambar}
               >
                 {loading ? 'Menyimpan...' : editingMenu ? 'Simpan Perubahan' : 'Tambah Menu'}
