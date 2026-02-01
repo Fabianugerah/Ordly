@@ -6,7 +6,7 @@ export interface PaymentMethod {
   name: string;
   type: 'qris' | 'ewallet' | 'bank_transfer';
   icon: string; // Path ke file gambar
-  value: string;
+  value: string; // Value untuk database (qris/debit/tunai)
   instructions: string;
 }
 
@@ -15,10 +15,10 @@ export interface PaymentResponse {
   message: string;
   transaksi?: any;
   payment_info?: {
-    qr_code?: string;
-    virtual_account?: string;
-    account_name?: string;
-    amount?: number;
+    qr_code?: string;       // URL QR Code
+    virtual_account?: string; // No VA / No HP
+    account_name?: string;  // Nama Penerima
+    amount?: number;        // Total Bayar
     expires_at?: string;
   };
 }
@@ -30,9 +30,11 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     name: 'QRIS',
     type: 'qris',
     value: 'qris',
+    // Pastikan file ini ada di public/images/icons/qris.jpeg
     icon: '/images/icons/qris.jpeg',
     instructions: 'Scan QR menggunakan aplikasi E-Wallet atau Mobile Banking.',
   },
+  
   // 2. E-Wallet
   {
     id: 'dana',
@@ -98,27 +100,30 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     type: 'bank_transfer',
     value: 'debit',
     icon: '/images/icons/bni.png',
-    instructions: 'Transfer ke Nomor Virtual Account BRI di bawah ini.',
+    instructions: 'Transfer ke Nomor Virtual Account BNI di bawah ini.',
   },
 ];
 
 class PaymentService {
+  // Generate Dummy QR Code URL
   private generateQRCode(data: string): string {
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`;
   }
 
+  // Generate Dummy VA / E-Wallet Number
   private generatePaymentNumber(provider: string, orderId: number): string {
     const prefixMap: Record<string, string> = {
       bca: '8800',
       mandiri: '9001',
       bri: '7711',
-      bni: '6521',
+      bni: '6521', // Prefix BNI
       dana: '0814',
-      shopeepay: '0815',
+      shopeepay: '0815', // Prefix ShopeePay
       gopay: '0812',
       ovo: '0813',
     };
     const prefix = prefixMap[provider] || '9999';
+    // Gunakan 4 digit terakhir orderId agar tidak terlalu panjang
     const suffix = orderId.toString().padStart(6, '0').slice(-6); 
     return `${prefix}88${suffix}`; 
   }
@@ -139,6 +144,7 @@ class PaymentService {
       const provider = payment_details.provider;
       const methodType = PAYMENT_METHODS.find(m => m.id === provider)?.type;
 
+      // 1. Simpan Transaksi ke Database
       const { data: transaksi, error } = await supabase
         .from('transaksi')
         .insert([{
@@ -146,18 +152,19 @@ class PaymentService {
           id_order,
           tanggal: new Date().toISOString(),
           total_bayar,
-          uang_diterima: total_bayar, 
+          uang_diterima: total_bayar, // Asumsi pas
           kembalian: 0,
-          metode_pembayaran 
+          metode_pembayaran // Value DB: qris / debit
         }])
         .select()
         .single();
 
       if (error) throw error;
 
+      // 2. Generate Payment Info (Simulasi)
       const paymentInfo: any = {
         amount: total_bayar,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), 
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 menit
       };
 
       if (methodType === 'qris') {

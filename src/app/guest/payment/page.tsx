@@ -186,7 +186,6 @@ function PaymentContent() {
         id_user: user?.id_user!,
         total_bayar: priceDetails.total, // MENGGUNAKAN TOTAL + PAJAK
         metode_pembayaran: method.value,
-        payment_type: method.type as 'qris' | 'ewallet' | 'bank_transfer',
         payment_details: {
           provider: selectedMethodId,
         },
@@ -268,7 +267,7 @@ function PaymentContent() {
                   <div className="mb-6">
                     <p className="text-sm font-semibold mb-3 text-neutral-600 dark:text-neutral-300">Scan QR Code</p>
                     <div className="bg-white p-4 rounded-xl shadow-sm inline-block">
-                      <img src={paymentInfo.qr_code} alt="QR Code" width={200} height={200} className="mix-blend-multiply" />
+                      <Image src={paymentInfo.qr_code} alt="QR Code" width={200} height={200} className="mix-blend-multiply" />
                     </div>
                   </div>
                 )}
