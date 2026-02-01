@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { ShoppingCart, Plus, Minus, ArrowLeft, Users, Check, RefreshCw, Utensils, X, User } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, ArrowLeft, Users, Check, RefreshCw, Utensils, X, User, AlertCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import Navbar from '@/components/layout/NavbarCustomer';
 import Footer from '@/components/layout/FooterCustomer';
@@ -147,10 +147,10 @@ export default function CustomerOrderPage() {
 
       // Jangan clearCart() disini, biarkan payment page yang menghandle atau clear setelah bayar
       // Tapi karena logic sebelumnya clearCart(), kita ikuti flow yang ada namun simpan nama di state
-      
+
       // clearCart(); <--- Hapus ini agar nama & item tetap ada jika user back (opsional)
       // Tapi flow Anda sebelumnya clearCart(), jadi pastikan nama tersimpan di DB.
-      
+
       router.push(`/guest/payment?order=${order.id_order}`);
 
     } catch (error: any) {
@@ -162,9 +162,9 @@ export default function CustomerOrderPage() {
   };
 
   const getTableStyle = (status: string, isSelected: boolean) => {
-    if (isSelected) return 'bg-orange-500 text-white border-orange-600 shadow-lg scale-105';
-    if (status === 'terisi') return 'bg-neutral-200 dark:bg-neutral-700 text-neutral-400 cursor-not-allowed';
-    return 'bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-orange-500 hover:shadow-md cursor-pointer';
+    if (isSelected) return 'bg-white text-black border-white shadow-lg scale-105';
+    if (status === 'terisi') return 'bg-neutral-200 dark:bg-neutral-600 text-neutral-500 cursor-not-allowed';
+    return 'bg-white dark:bg-neutral-800 hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-neutral-500 hover:shadow-md cursor-pointer';
   };
 
   return (
@@ -173,7 +173,7 @@ export default function CustomerOrderPage() {
 
       <main className="flex-1 px-4 md:px-8 py-8 space-y-8">
         <div className="max-w-7xl mx-auto">
-          
+
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
             <div className="flex items-center gap-4">
               <button onClick={() => router.push('/guest/menu')} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors">
@@ -190,54 +190,55 @@ export default function CustomerOrderPage() {
           </div>
 
           <div className="mb-8">
-             <PaymentSteps currentStep={1} />
+            <PaymentSteps currentStep={1} />
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6 animate-pulse">
-              <p className="text-red-400 text-sm font-semibold text-center">{error}</p>
+            <div className="flex flex-row gap-2 items-center bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6">
+              <AlertCircle className="text-red-400"/>
+              <p className="text-red-400 text-sm font-semibold">{error}</p>
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              
-              {/* --- INPUT NAMA PELANGGAN (BARU) --- */}
+
+              {/* Input Nama */}
               <Card>
-                <div className="flex items-center gap-3 mb-4 border-b border-neutral-200 dark:border-neutral-800 pb-4">
-                   <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4 border-b border-neutral-200 dark:border-neutral-800 pb-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-neutral-600/30 flex items-center justify-center text-neutral-500">
                       <User className="w-5 h-5" />
-                   </div>
-                   <div>
-                      <h2 className="text-lg font-bold text-neutral-800 dark:text-white">Data Pemesan</h2>
-                      <p className="text-xs text-neutral-500">Atas nama siapa pesanan ini?</p>
-                   </div>
-                </div>
-                <div>
-                   <label className="block text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-2">
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-neutral-800 dark:text-white">Data Pemesan</h2>
+                      <p className="text-sm text-neutral-400">Isi data pemesan sebelum melanjutkan</p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium dark:text-white mb-2">
                       Nama Pelanggan <span className="text-red-500">*</span>
-                   </label>
-                   <input 
-                      type="text" 
+                    </label>
+                    <input
+                      type="text"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder="Masukkan nama Anda..."
-                      className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-neutral-900 dark:text-white placeholder:text-neutral-400"
-                   />
+                      className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-orange-500 text-neutral-900 dark:text-white placeholder:text-neutral-400"
+                    />
+                  </div>
                 </div>
-              </Card>
 
-              {/* Pilih Meja */}
-              <Card>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-neutral-800 dark:text-white">Pilih Nomor Meja</h2>
+                {/* Pilih Meja */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-neutral-800 dark:text-white">Pilih Nomor Meja <span className="text-red-500">*</span></h2> 
                   <button onClick={fetchTables} disabled={loadingTables} className="p-2 hover:bg-neutral-800 rounded-lg">
                     <RefreshCw className={`w-5 h-5 text-neutral-400 ${loadingTables ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
 
                 {loadingTables ? (
-                  <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div></div>
+                  <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-neutral-500 border-t-transparent rounded-full"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-4">
@@ -246,7 +247,7 @@ export default function CustomerOrderPage() {
                           key={table.no_meja}
                           onClick={() => table.status === 'tersedia' && setSelectedTable(table.no_meja)}
                           disabled={table.status !== 'tersedia'}
-                          className={`relative aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center ${getTableStyle(table.status, selectedTable === table.no_meja)}`}
+                          className={`relative aspect-square rounded-xl border-2 border-neutral-700 transition-all duration-200 flex flex-col items-center justify-center ${getTableStyle(table.status, selectedTable === table.no_meja)}`}
                         >
                           {selectedTable === table.no_meja && <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1"><Check className="w-3 h-3 text-white" /></div>}
                           <Users className="w-6 h-6 mb-1 opacity-80" />
@@ -256,7 +257,7 @@ export default function CustomerOrderPage() {
                       ))}
                     </div>
                     {selectedTable && (
-                      <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg text-orange-400 text-sm text-center font-medium">
+                      <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm font-medium">
                         Meja #{selectedTable} Dipilih
                       </div>
                     )}
@@ -354,36 +355,36 @@ export default function CustomerOrderPage() {
                 <div className="space-y-4">
                   {/* Tampilkan Nama di Ringkasan */}
                   <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-2">
-                     <div className="flex justify-between text-sm">
-                        <span className="text-neutral-400">Atas Nama</span>
-                        <span className="text-white font-bold">{customerName || '-'}</span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                        <span className="text-neutral-400">Meja</span>
-                        <span className="text-orange-500 font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
-                     </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-400">Atas Nama</span>
+                      <span className="text-white font-bold">{customerName || '-'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-400">Meja</span>
+                      <span className="text-orange-500 font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
+                    </div>
                   </div>
 
                   <div>
                     <label className="text-sm text-neutral-400 mb-1 block">Catatan (Opsional)</label>
-                    <textarea 
-                      value={keterangan} 
-                      onChange={(e) => setKeterangan(e.target.value)} 
+                    <textarea
+                      value={keterangan}
+                      onChange={(e) => setKeterangan(e.target.value)}
                       className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-sm text-white focus:ring-1 focus:ring-orange-500 focus:outline-none"
-                      rows={2}
+                      rows={6}
                       placeholder="Contoh: Jangan terlalu pedas..."
                     />
                   </div>
 
                   <div className="border-t border-neutral-800 pt-4 space-y-2">
-                     <div className="flex justify-between text-white font-bold text-lg">
-                        <span>Total</span>
-                        <span>Rp {getTotalPrice().toLocaleString('id-ID')}</span>
-                     </div>
+                    <div className="flex justify-between text-white font-bold text-lg">
+                      <span>Total</span>
+                      <span>Rp {getTotalPrice().toLocaleString('id-ID')}</span>
+                    </div>
                   </div>
 
                   <Button onClick={handleSubmitOrder} disabled={loading || items.length === 0} className="w-full py-3">
-                     {loading ? 'Memproses...' : 'Lanjut Pembayaran'}
+                    {loading ? 'Memproses...' : 'Lanjut Pembayaran'}
                   </Button>
                 </div>
               </Card>

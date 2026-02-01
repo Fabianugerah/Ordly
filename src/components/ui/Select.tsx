@@ -99,7 +99,7 @@ const Select = React.forwardRef<HTMLInputElement, SelectProps>(
 
           {/* Dropdown Menu (Style disesuaikan dengan Navbar Dropdown) */}
           {isOpen && (
-            <div className="absolute z-50 w-full mt-2 overflow-hidden origin-top-right">
+            <div className="absolute z-40 w-full mt-2 overflow-hidden origin-top-right">
                 {/* STYLE UPDATE:
                    Menggunakan style yang sama persis dengan dropdown navbar Anda:
                    - backdrop-blur-md

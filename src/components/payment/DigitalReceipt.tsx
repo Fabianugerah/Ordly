@@ -1,12 +1,13 @@
+// src/components/payment/DigitalReceipt.tsx
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Printer, Home, Download, CheckCircle, Coffee, Share2, MessageCircle } from 'lucide-react';
+import { Download, CheckCircle, Coffee, MessageCircle, Home } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import Barcode from 'react-barcode'; // Untuk Garis-garis (ID)
-import QRCode from 'react-qr-code';  // Untuk Link Website
+import Barcode from 'react-barcode';
+import QRCode from 'react-qr-code';
 
 interface DigitalReceiptProps {
   transaksi: any;
@@ -18,10 +19,16 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
   const [isDownloading, setIsDownloading] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
 
-  // Generate ID Panjang untuk Barcode Garis (Biar gagah)
+  // Generate ID Panjang untuk Barcode
   const dateObj = new Date(transaksi.tanggal);
   const dateStr = dateObj.toISOString().slice(0, 10).replace(/-/g, '');
   const receiptCode = `${dateStr}${transaksi.id_transaksi.toString().padStart(4, '0')}`;
+
+  // Hitung Ulang Subtotal & Pajak untuk Tampilan Struk
+  const items = transaksi.order?.detail_order || [];
+  const subtotal = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
+  const tax = subtotal * 0.10; // Pajak 10%
+  // Total Bayar diambil langsung dari transaksi.total_bayar (karena sudah final di DB)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -80,6 +87,7 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
           width: '100%',
         }}
       >
+        {/* Hiasan Atas Struk (Gerigi) */}
         <div className="w-full h-4 bg-neutral-900 relative">
           <div className="absolute bottom-0 left-0 w-full h-2 bg-white" style={{ clipPath: 'polygon(0% 100%, 2% 0%, 4% 100%, 6% 0%, 8% 100%, 10% 0%, 12% 100%, 14% 0%, 16% 100%, 18% 0%, 20% 100%, 22% 0%, 24% 100%, 26% 0%, 28% 100%, 30% 0%, 32% 100%, 34% 0%, 36% 100%, 38% 0%, 40% 100%, 42% 0%, 44% 100%, 46% 0%, 48% 100%, 50% 0%, 52% 100%, 54% 0%, 56% 100%, 58% 0%, 60% 100%, 62% 0%, 64% 100%, 66% 0%, 68% 100%, 70% 0%, 72% 100%, 74% 0%, 76% 100%, 78% 0%, 80% 100%, 82% 0%, 84% 100%, 86% 0%, 88% 100%, 90% 0%, 92% 100%, 94% 0%, 96% 100%, 98% 0%, 100% 100%)' }}></div>
         </div>
@@ -92,15 +100,15 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
                 <Coffee className="w-6 h-6 text-black" />
               </div>
             </div>
-            <h2 className="text-3xl font-black tracking-tighter uppercase mb-1">CAFFEEIN</h2>
-            <p className="text-[10px] uppercase tracking-widest text-neutral-500">Authentic Coffee Space</p>
+            <h2 className="text-2xl font-black tracking-tighter uppercase mb-1">CAFFEEIN</h2>
+            <p className="text-[10px] uppercase tracking-widest text-neutral-500">Authentic and Modern Coffee Shop</p>
             <div className="my-3 border-b border-black border-dashed"></div>
             <p className="text-[11px] font-bold">Jl. Dharma Bakti No. 14</p>
             <p className="text-[11px]">Pandaan, Jawa Timur</p>
           </div>
 
           {/* Info Transaksi */}
-          <div className="mb-6 text-[11px] space-y-1.5">
+          <div className="mb-2 text-[11px] space-y-1.5">
             <div className="flex justify-between">
               <span className="text-neutral-500">Date</span>
               <span>{new Date(transaksi.tanggal).toLocaleDateString('id-ID')}</span>
@@ -119,7 +127,7 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
 
           {/* List Menu */}
           <div className="space-y-3 mb-6">
-            {transaksi.order?.detail_order?.map((item: any, index: number) => (
+            {items.map((item: any, index: number) => (
               <div key={index} className="flex flex-col text-xs">
                 <span className="font-bold mb-1 text-[13px]">{item.masakan?.nama_masakan}</span>
                 <div className="flex justify-between text-neutral-600 pl-2">
@@ -132,34 +140,40 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
 
           <div className="border-b border-black border-dashed mb-4"></div>
 
-          {/* Total */}
+          {/* Total & Tax Section */}
           <div className="space-y-1 mb-6">
+            {/* Subtotal */}
             <div className="flex justify-between text-[11px]">
               <span>Subtotal</span>
-              <span>Rp {transaksi.total_bayar.toLocaleString('id-ID')}</span>
+              <span>Rp {subtotal.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between text-[11px]">
-              <span>Tax (0%)</span>
-              <span>Rp 0</span>
+            
+            {/* Pajak (Tax 10%) */}
+            <div className="flex justify-between text-[11px] text-neutral-600">
+              <span>Tax & Service (10%)</span>
+              <span>Rp {tax.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between text-xl font-black mt-3 pt-3 border-t-2 border-black items-center">
+
+            {/* Total Akhir */}
+            <div className="flex justify-between text-lg font-black pt-2 pb-2 border-t border-black items-center">
               <span>TOTAL</span>
               <span>Rp {transaksi.total_bayar.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between text-xs mt-2 items-center bg-neutral-100 p-2 rounded">
+            
+            <div className="flex justify-between text-xs mt-6 items-center bg-neutral-100 p-2 rounded">
               <span className="font-bold">PAYMENT</span>
               <span className="uppercase font-bold">{transaksi.metode_pembayaran}</span>
             </div>
           </div>
 
-          {/* Footer: QR Code (Untuk Link) + Barcode (Untuk ID) */}
+          {/* Footer: QR Code & Barcode */}
           <div className="text-center text-[10px] space-y-6 mt-8">
             <div className="flex justify-center items-center gap-2 text-neutral-500 mb-4">
               <CheckCircle className="w-4 h-4 text-black" />
               <span className="font-bold text-black">PAID / LUNAS</span>
             </div>
 
-            {/* 1. QR CODE: Scan untuk Buka Link (Berfungsi!) */}
+            {/* 1. QR CODE */}
             <div className="flex flex-col items-center">
               {currentUrl && (
                 <div className="p-2 border border-neutral-300 rounded bg-white">
@@ -174,10 +188,10 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
               <p className="text-[10px] mt-2 text-neutral-500">Scan untuk simpan struk</p>
             </div>
 
-            {/* 2. BARCODE GARIS: Untuk ID Transaksi (Tampilan Keren + Scan Kasir) */}
+            {/* 2. BARCODE */}
             <div className="flex flex-col items-center justify-center opacity-80 pt-4 border-t border-dashed border-neutral-300 w-full">
               <Barcode
-                value={receiptCode} // ID Panjang
+                value={receiptCode}
                 format="CODE128"
                 width={2}
                 height={40}
@@ -195,13 +209,14 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
           </div>
         </div>
 
+        {/* Hiasan Bawah Struk (Gerigi) */}
         <div className="w-full h-3 bg-neutral-900 relative mt-0">
           <div className="absolute top-0 left-0 w-full h-2 bg-white" style={{ clipPath: 'polygon(0% 0%, 2% 100%, 4% 0%, 6% 100%, 8% 0%, 10% 100%, 12% 0%, 14% 100%, 16% 0%, 18% 100%, 20% 0%, 22% 100%, 24% 0%, 26% 100%, 28% 0%, 30% 100%, 32% 0%, 34% 100%, 36% 0%, 38% 100%, 40% 0%, 42% 100%, 44% 0%, 46% 100%, 48% 0%, 50% 100%, 52% 0%, 54% 100%, 56% 0%, 58% 100%, 60% 0%, 62% 100%, 64% 0%, 66% 100%, 68% 0%, 70% 100%, 72% 0%, 74% 100%, 76% 0%, 78% 100%, 80% 0%, 82% 100%, 84% 0%, 86% 100%, 88% 0%, 90% 100%, 92% 0%, 94% 100%, 96% 0%, 98% 100%, 100% 0%)' }}></div>
         </div>
       </div>
 
       {/* BUTTONS */}
-      <div className="flex flex-col w-full gap-3 mt-4">
+      <div className="flex flex-col w-full gap-3">
         <div className="grid grid-cols-2 gap-3 w-full">
           <Button
             onClick={handleDownloadPDF}
@@ -213,7 +228,7 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
             ) : (
               <Download className="w-4 h-4 mr-2" />
             )}
-            <span className="text-xs sm:text-sm">Simpan PDF</span>
+            <span className="text-xs sm:text-sm">Cetak Struk</span>
           </Button>
 
           <Button

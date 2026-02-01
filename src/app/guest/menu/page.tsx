@@ -271,8 +271,6 @@ export default function CustomerMenuPage() {
                       options={sortOptions}
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      // Kita override style background agar match dengan tema dark page ini
-                      className="bg-neutral-900 border-neutral-700 text-white"
                     />
                   </div>
                 </div>

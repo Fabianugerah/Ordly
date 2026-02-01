@@ -4,7 +4,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useCartStore } from '@/store/cartStore'; // 1. Import Store
+import { useCartStore } from '@/store/cartStore';
 import DigitalReceipt from '@/components/payment/DigitalReceipt';
 import PaymentSteps from '@/components/payment/PaymentSteps'; 
 import Navbar from '@/components/layout/NavbarCustomer';
@@ -88,7 +88,7 @@ function ReceiptContent() {
          <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       </div>
 
-      <main className="flex-1 flex flex-col items-center justify-center py-12 px-4 relative">
+      <main className="flex-1 flex flex-col items-center justify-center pt-12 relative">
         {/* Background Glow Effect */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
 
@@ -101,7 +101,7 @@ function ReceiptContent() {
 
           {/* Judul Halaman */}
           <div className="text-center space-y-2 mb-8 print:hidden animate-fade-in-down">
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-500">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent text-white">
               Pembayaran Berhasil!
             </h1>
             <p className="text-neutral-400">

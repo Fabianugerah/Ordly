@@ -21,7 +21,7 @@ export default function PaymentSteps({ currentStep }: PaymentStepsProps) {
   const progressWidth = currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%';
 
   return (
-    <div className="w-full max-w-3xl mx-auto mb-8 px-4">
+    <div className="w-full max-w-3xl mx-auto mb-8 py-4">
       {/* 1. Baris Label (Teks) */}
       <div className="flex justify-between mb-3 px-2">
         {steps.map((step) => {
