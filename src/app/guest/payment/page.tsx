@@ -281,7 +281,7 @@ function PaymentContent() {
                         {paymentInfo.virtual_account}
                       </span>
                       <button onClick={() => copyToClipboard(paymentInfo.virtual_account)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors">
-                        {copied ? <CheckCircle className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-neutral-500" />}
+                        {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-neutral-500" />}
                       </button>
                     </div>
                     {paymentInfo.account_name && (
