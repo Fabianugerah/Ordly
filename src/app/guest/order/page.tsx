@@ -249,7 +249,7 @@ export default function CustomerOrderPage() {
                           disabled={table.status !== 'tersedia'}
                           className={`relative aspect-square rounded-xl border-2 border-neutral-700 transition-all duration-200 flex flex-col items-center justify-center ${getTableStyle(table.status, selectedTable === table.no_meja)}`}
                         >
-                          {selectedTable === table.no_meja && <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1"><Check className="w-3 h-3 text-white" /></div>}
+                          {selectedTable === table.no_meja && <div className="absolute top-1 right-1 bg-black rounded-full p-1"><Check className="w-3 h-3 text-white" /></div>}
                           <Users className="w-6 h-6 mb-1 opacity-80" />
                           <span className="text-lg font-bold">{table.no_meja}</span>
                           <span className="text-[10px] opacity-75">{table.kapasitas} orang</span>
@@ -257,8 +257,9 @@ export default function CustomerOrderPage() {
                       ))}
                     </div>
                     {selectedTable && (
-                      <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm font-medium">
-                        Meja #{selectedTable} Dipilih
+                      <div className="flex gap-2 p-3 items-center bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm font-base">
+                         <div className="border border-green-400 rounded-full p-1"><Check className="w-3 h-3 text-green-400" /></div>
+                         <p>Meja #{selectedTable} Dipilih</p>
                       </div>
                     )}
                   </>
@@ -270,8 +271,8 @@ export default function CustomerOrderPage() {
                 {items.length === 0 ? (
                   <div className="text-center py-12">
                     <ShoppingCart className="w-16 h-16 text-neutral-700 mx-auto mb-4" />
-                    <p className="text-neutral-400 mb-4">Keranjang Anda masih kosong</p>
-                    <p className="text-sm text-neutral-500 mb-6">
+                    <p className="text-white mb-2">Keranjang Anda masih kosong</p>
+                    <p className="text-sm text-neutral-500 mb-4">
                       Silakan tambah menu dari daftar menu
                     </p>
                     <Button onClick={() => router.push('/guest/menu')}>
@@ -356,17 +357,19 @@ export default function CustomerOrderPage() {
                   {/* Tampilkan Nama di Ringkasan */}
                   <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-neutral-400">Atas Nama</span>
-                      <span className="text-white font-bold">{customerName || '-'}</span>
+                      <span className="text-neutral-400">Nama Pelanggan</span>
+                      <span className="text-white text-base font-bold">{customerName || '-'}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-sm items-center">
                       <span className="text-neutral-400">Meja</span>
-                      <span className="text-orange-500 font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
+                      <div className="border border-neutral-700 rounded-lg px-2 py-1 bg-neutral-800 text-sm">
+                      <span className="text-white font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
+                      </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm text-neutral-400 mb-1 block">Catatan (Opsional)</label>
+                    <label className="text-sm text-neutral-400 mb-2 block">Catatan (Opsional)</label>
                     <textarea
                       value={keterangan}
                       onChange={(e) => setKeterangan(e.target.value)}

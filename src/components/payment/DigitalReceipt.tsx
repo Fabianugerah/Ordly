@@ -69,12 +69,6 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
     }
   };
 
-  const handleShareWA = () => {
-    if (!currentUrl) return;
-    const message = `Halo Kak ${transaksi.order?.nama_pelanggan || 'Pelanggan'}, ini struk digital Anda:\n\n${currentUrl}\n\nKode Ref: ${receiptCode}\nTerima kasih! ☕`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-sm mx-auto animate-slide-up pb-10">
 
@@ -147,7 +141,7 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
               <span>Subtotal</span>
               <span>Rp {subtotal.toLocaleString('id-ID')}</span>
             </div>
-            
+
             {/* Pajak (Tax 10%) */}
             <div className="flex justify-between text-[11px] text-neutral-600">
               <span>Tax & Service (10%)</span>
@@ -159,7 +153,7 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
               <span>TOTAL</span>
               <span>Rp {transaksi.total_bayar.toLocaleString('id-ID')}</span>
             </div>
-            
+
             <div className="flex justify-between text-xs mt-6 items-center bg-neutral-100 p-2 rounded">
               <span className="font-bold">PAYMENT</span>
               <span className="uppercase font-bold">{transaksi.metode_pembayaran}</span>
@@ -217,28 +211,20 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
 
       {/* BUTTONS */}
       <div className="flex flex-col w-full gap-3">
-        <div className="grid grid-cols-2 gap-3 w-full">
-          <Button
-            onClick={handleDownloadPDF}
-            disabled={isDownloading}
-            className="bg-neutral-800 hover:bg-neutral-900 text-white border-none h-12 flex items-center justify-center"
-          >
-            {isDownloading ? (
-              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            <span className="text-xs sm:text-sm">Cetak Struk</span>
-          </Button>
 
-          <Button
-            onClick={handleShareWA}
-            className="bg-green-600 hover:bg-green-700 text-white border-none h-12 shadow-lg shadow-green-900/20 flex items-center justify-center"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            <span className="text-xs sm:text-sm">Kirim WA</span>
-          </Button>
-        </div>
+        <Button
+          onClick={handleDownloadPDF}
+          disabled={isDownloading}
+          className="bg-neutral-800 hover:bg-neutral-200 text-black border-none h-12 flex items-center justify-center"
+        >
+          {isDownloading ? (
+            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+          ) : (
+            <Download className="w-4 h-4 mr-2" />
+          )}
+          <span className="text-xs sm:text-sm">Cetak Struk</span>
+        </Button>
+
 
         <Button
           variant="outline"

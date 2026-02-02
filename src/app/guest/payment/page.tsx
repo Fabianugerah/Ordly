@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import {
   ArrowLeft,
   Copy,
-  CheckCircle,
+  Check,
   Clock,
   Building2,
   ShieldCheck,
@@ -317,10 +317,10 @@ function PaymentContent() {
                         <button
                           key={m.id}
                           onClick={() => setSelectedMethodId(m.id)}
-                          className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left group
+                          className={`flex items-center gap-4 p-4 rounded-xl border transition-all text-left group
                                     ${selectedMethodId === m.id
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                              : 'border-neutral-200 dark:border-neutral-800 hover:border-blue-300 bg-white dark:bg-neutral-900'
+                              ? 'border-white bg-blue-50 dark:bg-white text-black'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-white bg-white dark:bg-neutral-900'
                             }`}
                         >
                           <div className="relative w-12 h-12 mb-1">
@@ -330,7 +330,7 @@ function PaymentContent() {
                             <p className="font-bold text-sm">{m.name}</p>
                             <p className="text-xs text-neutral-500">{m.instructions}</p>
                           </div>
-                          {selectedMethodId === m.id && <CheckCircle className="w-5 h-5 text-blue-600" />}
+                          {selectedMethodId === m.id && <div className="bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-white" /> </div>}
                         </button>
                       ))}
                     </div>
@@ -344,10 +344,10 @@ function PaymentContent() {
                         <button
                           key={m.id}
                           onClick={() => setSelectedMethodId(m.id)}
-                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all h-32 relative
+                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all h-32 relative
                                     ${selectedMethodId === m.id
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                              : 'border-neutral-200 dark:border-neutral-800 hover:border-blue-300 bg-white dark:bg-neutral-900'
+                              ? 'border-white bg-blue-50 dark:bg-white text-black'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-white bg-white dark:bg-neutral-900'
                             }`}
                         >
                           {/* IMAGE ICON */}
@@ -368,10 +368,10 @@ function PaymentContent() {
                         <button
                           key={m.id}
                           onClick={() => setSelectedMethodId(m.id)}
-                          className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left
+                          className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left
                                     ${selectedMethodId === m.id
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                              : 'border-neutral-200 dark:border-neutral-800 hover:border-blue-300 bg-white dark:bg-neutral-900'
+                              ? 'border-white bg-blue-50 dark:bg-white text-black'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-white bg-white dark:bg-neutral-900'
                             }`}
                         >
                           <div className="relative w-12 h-12 mb-1">
@@ -380,7 +380,7 @@ function PaymentContent() {
                           <div className="flex-1">
                             <p className="font-bold text-sm">{m.name}</p>
                           </div>
-                          {selectedMethodId === m.id && <CheckCircle className="w-5 h-5 text-blue-600" />}
+                          {selectedMethodId === m.id && <div className="bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-white" /> </div>}
                         </button>
                       ))}
                     </div>
@@ -420,10 +420,10 @@ function PaymentContent() {
                       <span className="text-neutral-500">Tax & Service (10%)</span>
                       <span>Rp {priceDetails.tax.toLocaleString('id-ID')}</span>
                     </div>
-                    <div className="border-t border-neutral-200 dark:border-neutral-700 my-2 pt-2"></div>
+                    <div className="border-t border-neutral-200 dark:border-neutral-700 my-2"></div>
                     <div className="flex justify-between items-end">
-                      <span className="font-bold text-lg">Total Bayar</span>
-                      <span className="font-bold text-xl text-blue-600">Rp {priceDetails.total.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-base">Total Bayar</span>
+                      <span className="font-bold text-lg text-white">Rp {priceDetails.total.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
 
@@ -431,7 +431,7 @@ function PaymentContent() {
                     <Button
                       onClick={handlePayment}
                       disabled={!selectedMethodId || processing}
-                      className="w-full py-4 text-base font-bold bg-blue-600 hover:bg-blue-700"
+                      className="w-full py-4 text-base font-bold bg-white hover:bg-neutral-100"
                     >
                       {processing ? 'Memproses...' : 'Bayar Sekarang'}
                     </Button>
