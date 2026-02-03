@@ -122,7 +122,7 @@ export default function CustomerMenuPage() {
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 mt-16 px-4 md:px-0">
           {/* Sidebar Filter (Desktop) */}
-          <aside className="w-full md:w-64 space-y-8">
+          <aside className="w-full md:w-64 space-y-8 sticky top-28 self-start hidden md:block">
             {/* ... (Kode Sidebar Filter Harga & Kategori tetap sama) ... */}
              <div>
               <h3 className="font-semibold text-neutral-800 dark:text-white mb-4 text-2xl">Filter</h3>
@@ -367,7 +367,7 @@ export default function CustomerMenuPage() {
                         {quantity === 0 ? (
                           <button
                             onClick={() => addItem(item)}
-                            className="py-2 px-4 bg-transparent group-hover:bg-neutral-700 text-white rounded-xl border-2 border-neutral-800 group-hover:border-neutral-700 transition-all duration-300 shadow-md active:scale-90 flex items-center gap-1 text-sm font-medium"
+                            className="py-2 px-4 bg-transparent group-hover:bg-neutral-700 text-white rounded-xl border border-neutral-800 group-hover:border-neutral-700 transition-all duration-300 shadow-md active:scale-90 flex items-center gap-1 text-sm font-medium"
                           >
                             Add <Plus className="w-4 h-4" />
                           </button>

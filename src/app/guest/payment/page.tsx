@@ -33,7 +33,7 @@ function PaymentContent() {
   const { addItem, clearCart, setCustomerName } = useCartStore();
 
   const [order, setOrder] = useState<any>(null);
-  const [selectedMethodId, setSelectedMethodId] = useState<string>(''); // Rename biar konsisten
+  const [selectedMethodId, setSelectedMethodId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -388,7 +388,8 @@ function PaymentContent() {
                 </Card>
               </div>
 
-              {/* Kolom Kanan: Ringkasan Pembayaran */}
+              
+              {/* Kolom Kanan: Ringkasan Pembayaran (STYLE BARU) */}
               <div className="lg:col-span-1">
                 <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6 sticky top-24 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
@@ -398,7 +399,7 @@ function PaymentContent() {
                     </span>
                   </div>
 
-                  <div className="space-y-4 mb-6 pr-2">
+                  <div className="space-y-4 mb-6 pr-2 max-h-60 overflow-y-auto custom-scrollbar">
                     {order.detail_order?.map((item: any) => (
                       <div key={item.id_detail_order} className="flex justify-between text-sm">
                         <div className="flex-1">
@@ -431,7 +432,7 @@ function PaymentContent() {
                     <Button
                       onClick={handlePayment}
                       disabled={!selectedMethodId || processing}
-                      className="w-full py-4 text-base font-bold bg-white hover:bg-neutral-100"
+                      className="w-full py-4 text-base font-bold bg-white hover:bg-neutral-100 text-neutral-900"
                     >
                       {processing ? 'Memproses...' : 'Bayar Sekarang'}
                     </Button>

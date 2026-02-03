@@ -13,9 +13,9 @@ export default function Loading({ size = 'md', text }: LoadingProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <div
-        className={`${sizes[size]} border-primary border-t-transparent rounded-full animate-spin`}
+        className={`${sizes[size]} border-neutral-200 border-t-transparent rounded-full animate-spin`}
       />
-      {text && <p className="text-sm text-gray-600">{text}</p>}
+      {text && <p className="text-sm text-neutral-600">{text}</p>}
     </div>
   );
 }

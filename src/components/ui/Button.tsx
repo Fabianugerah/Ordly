@@ -19,7 +19,7 @@ export default function Button({
     primary: 'bg-white text-black  hover:bg-neutral-200',
     secondary: 'bg-secondary text-white hover:bg-amber-600 focus:ring-amber-300',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-300',
-    outline: 'border-2 border-neutral-800 text-white hover:bg-neutral-800 hover:text-white focus:ring-neutral-300',
+    outline: 'border border-neutral-800 text-white hover:bg-neutral-800 hover:text-white focus:ring-neutral-300',
   };
   
   const sizes = {
