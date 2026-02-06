@@ -28,7 +28,7 @@ function ReceiptContent() {
     if (transaksiId) {
       fetchTransaksi(parseInt(transaksiId));
     } else {
-      router.push('/guest/orders');
+      router.push('/guest/order');
     }
   }, [searchParams]);
 

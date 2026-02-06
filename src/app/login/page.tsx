@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/lib/services/authService';
 
@@ -104,7 +106,7 @@ export default function LoginPage() {
   const handleGuestAccess = () => {
     // Create temporary guest session
     // const guestUser = { ... } // Tidak perlu deklarasi variable jika tidak dipakai langsung di sini
-    
+
     // Set guest as temporary user (without saving to localStorage permanently)
     sessionStorage.setItem('guest_mode', 'true');
     router.push('/guest/menu');
@@ -124,9 +126,20 @@ export default function LoginPage() {
         {/* LEFT – LOGIN FORM */}
         <div className="w-full md:w-[45%] bg-black/60 backdrop-blur-sm p-6 sm:p-8 md:p-10 flex flex-col justify-between">
           {/* Logo */}
-          <div className="text-orange-600 mb-12 font-bold text-2xl tracking-tight">
-            CaffeeIn
-          </div>
+          <Link
+            href="/login"
+            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+          >
+            <div className="relative w-28 h-12"> {/* Atur ukuran container logo di sini */}
+              <Image
+                src="/images/CaffeeIn_logo.svg"
+                alt="CaffeeIn Logo"
+                fill
+                className="object-contain object-left"
+                priority
+              />
+            </div>
+          </Link>
 
           <div className="flex flex-col">
             <div className="mb-4">
@@ -137,7 +150,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
                 {error}
               </div>
             )}
@@ -151,7 +164,7 @@ export default function LoginPage() {
                 value={formData.username}
                 onChange={handleChange}
                 placeholder="Masukkan Username"
-                className="w-full rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-600/50 border border-transparent transition-all"
+                className="w-full rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 border border-transparent transition-all"
               />
 
               <div className="relative">
@@ -163,7 +176,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Masukkan Password"
-                  className="w-full rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-600/50 border border-transparent transition-all"
+                  className="w-full rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 border border-transparent transition-all"
                 />
                 <button
                   type="button"

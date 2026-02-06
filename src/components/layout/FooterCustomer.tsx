@@ -2,6 +2,7 @@
 
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function GuestFooter() {
   return (
@@ -21,9 +22,20 @@ export default function GuestFooter() {
           <div className="col-span-1 md:col-span-4 lg:col-span-3">
             <div className="flex flex-col h-full">
               <div className="space-y-3">
-                <h3 className="font-extrabold text-2xl text-orange-500 tracking-tight">
-                  CaffeeIn
-                </h3>
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+                >
+                  <div className="relative w-28 h-12"> {/* Atur ukuran container logo di sini */}
+                    <Image
+                      src="/images/CaffeeIn_logo.svg"
+                      alt="CaffeeIn Logo"
+                      fill
+                      className="object-contain object-left"
+                      priority
+                    />
+                  </div>
+                </Link>
                 <div className="text-sm text-neutral-400 leading-relaxed">
                   <p>Modern Coffee Shop</p>
                   <p>CAFFEEIN Goods Ltd.</p>
@@ -42,10 +54,10 @@ export default function GuestFooter() {
           <div className="col-span-1 md:col-span-1 lg:col-span-2">
             <h4 className="font-semibold text-white mb-4 lg:mb-6">Company</h4>
             <ul className="space-y-3 lg:space-y-4 text-sm text-neutral-400">
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">About Us</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Settings</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Privacy Policy</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Terms & Conditions</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">About Us</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Settings</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Privacy Policy</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Terms & Conditions</Link></li>
             </ul>
           </div>
 
@@ -54,25 +66,25 @@ export default function GuestFooter() {
           <div className="col-span-1 md:col-span-1 lg:col-span-2">
             <h4 className="font-semibold text-white mb-4 lg:mb-6">Support</h4>
             <ul className="space-y-3 lg:space-y-4 text-sm text-neutral-400">
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Payment</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Delivery</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">FAQ</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Help Center</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Payment</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Delivery</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">FAQ</Link></li>
             </ul>
           </div>
 
           {/* KOLOM 4: Follow Us */}
           {/* Mobile: 1 kolom, Laptop: 2 kolom */}
-          <div className="col-span-1 md:col-span-1 lg:col-span-2">
+          <div className="col-span-1 md:col-span-1 lg:col-span-2">  
             <h4 className="font-semibold text-white mb-4 lg:mb-6">Follow Us</h4>
             <ul className="space-y-3 lg:space-y-4 text-sm text-neutral-400">
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Instagram</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Facebook</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">TikTok</Link></li>
-              <li><Link href="#" className="hover:text-orange-500 transition-all duration-300">Twitter</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Instagram</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Facebook</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">TikTok</Link></li>
+              <li><Link href="#" className="hover:text-neutral-200 transition-all duration-300">Twitter</Link></li>
             </ul>
           </div>
-          
+
           {/* KOLOM 5: Newsletter */}
           {/* Mobile: 1 baris penuh, Laptop: 3 kolom */}
           <div className="col-span-1 md:col-span-4 lg:col-span-3">

@@ -2,27 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-import Select from '@/components/ui/Select'; // Pastikan path ini sesuai dengan lokasi file Select.tsx Anda
-import { Search, ShoppingCart, Plus, Minus, Utensils, Star, X } from 'lucide-react';
+import Select from '@/components/ui/Select';
+import { Search, ShoppingCart, Plus, Minus, Utensils, Star, X, ChevronRight, Home } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/layout/NavbarCustomer';
 import Footer from '@/components/layout/FooterCustomer';
-
-// Opsi untuk dropdown sorting
-const sortOptions = [
-  { value: 'relevancy', label: 'Relevancy' },
-  { value: 'price_asc', label: 'Harga Termurah' },
-  { value: 'price_desc', label: 'Harga Termahal' },
-];
+import { MENU_CATEGORIES, SORT_OPTIONS } from '@/constants/options';
 
 export default function CustomerMenuPage() {
   const router = useRouter();
   const { items, addItem, updateQuantity } = useCartStore();
+  
   const [menu, setMenu] = useState<any[]>([]);
   const [filteredMenu, setFilteredMenu] = useState<any[]>([]);
-  const [sortBy, setSortBy] = useState<'relevancy' | 'price_asc' | 'price_desc'>('relevancy');
+  
+  // State sorting
+  const [sortBy, setSortBy] = useState<string>('relevancy');
+
   const MIN = 0;
   const MAX = 100000;
 
@@ -32,13 +30,18 @@ export default function CustomerMenuPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [loading, setLoading] = useState(true);
 
+  // 2. Gabungkan opsi 'Semua' dengan MENU_CATEGORIES yang di-import
+  const categoryFilters = [
+    ...MENU_CATEGORIES
+  ];
+
   useEffect(() => {
     fetchMenu();
   }, []);
 
   useEffect(() => {
     filterMenu();
-  }, [menu, searchTerm, selectedCategory, minPrice, maxPrice, sortBy]); // Tambahkan sortBy ke dependency array
+  }, [menu, searchTerm, selectedCategory, minPrice, maxPrice, sortBy]);
 
   const fetchMenu = async () => {
     try {
@@ -60,7 +63,7 @@ export default function CustomerMenuPage() {
   };
 
   const filterMenu = () => {
-    let filtered = [...menu]; // Gunakan spread operator di awal untuk cloning array agar aman
+    let filtered = [...menu];
 
     // 1. Filter Search
     if (searchTerm) {
@@ -81,14 +84,25 @@ export default function CustomerMenuPage() {
       (item) => item.harga >= minPrice && item.harga <= maxPrice
     );
 
-    // 4. Sorting (Logika Diperkuat)
+    // 4. Sorting
     if (sortBy === 'price_asc') {
-      // Menggunakan Number() untuk memastikan harga dibaca sebagai angka
       filtered.sort((a, b) => Number(a.harga) - Number(b.harga));
     } else if (sortBy === 'price_desc') {
       filtered.sort((a, b) => Number(b.harga) - Number(a.harga));
+    } else if (sortBy === 'relevancy') {
+      // Sort berdasarkan urutan kategori dari MENU_CATEGORIES
+      const categoryOrder = MENU_CATEGORIES.map(cat => cat.value);
+      filtered.sort((a, b) => {
+        const indexA = categoryOrder.indexOf(a.kategori.toLowerCase());
+        const indexB = categoryOrder.indexOf(b.kategori.toLowerCase());
+        
+        // Jika kategori tidak ditemukan, taruh di akhir
+        const orderA = indexA === -1 ? 999 : indexA;
+        const orderB = indexB === -1 ? 999 : indexB;
+        
+        return orderA - orderB;
+      });
     }
-    // Jika 'relevancy', biarkan urutan default (misal abjad dari fetchMenu)
 
     setFilteredMenu(filtered);
   };
@@ -97,34 +111,28 @@ export default function CustomerMenuPage() {
     return items.find((item) => item.id_masakan === id_masakan)?.jumlah || 0;
   };
 
-  const kategoriList = [
-    { label: 'Semua', value: 'all' },
-    { label: 'Makanan', value: 'makanan' },
-    { label: 'Minuman', value: 'minuman' },
-    { label: 'Dessert', value: 'dessert' },
-  ];
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-neutral-950">
         <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col">
+    <div className="min-h-screen bg-neutral-950 flex flex-col text-white">
       <main className="flex-1">
-        <Navbar 
+        <Navbar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
         />
 
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 mt-16 px-4 md:px-0">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 mt-4 px-4 md:px-0 pt-20">
+
           {/* Sidebar Filter (Desktop) */}
-          <aside className="w-full md:w-64 space-y-8 sticky top-28 self-start hidden md:block">
-            {/* ... (Kode Sidebar Filter Harga & Kategori tetap sama) ... */}
-             <div>
+          <aside className="w-full md:w-64 space-y-8 sticky top-24 self-start hidden md:block">
+            {/* Search */}
+            <div>
               <h3 className="font-semibold text-neutral-800 dark:text-white mb-4 text-2xl">Filter</h3>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -133,11 +141,12 @@ export default function CustomerMenuPage() {
                   placeholder="Cari menu..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-transparent text-white border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-transparent text-white border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-neutral-500 transition-all"
                 />
               </div>
             </div>
 
+            {/* Price Filter */}
             <div>
               <h3 className="font-semibold text-white mb-3">Harga</h3>
               <div className="relative w-full mt-6">
@@ -179,7 +188,7 @@ export default function CustomerMenuPage() {
                   type="number"
                   value={minPrice}
                   onChange={(e) => setMinPrice(Number(e.target.value))}
-                  className="w-full bg-transparent border border-neutral-800 rounded-lg px-3 py-2 text-white text-sm"
+                  className="w-full bg-transparent border border-neutral-800 rounded-lg  px-3 py-2 text-white text-sm"
                   placeholder="From"
                 />
                 <input
@@ -198,10 +207,11 @@ export default function CustomerMenuPage() {
 
             <div className="flex-1 border-t border-neutral-800"></div>
 
+            {/* Category Filter - Menggunakan categoryFilters yang sudah digabung */}
             <div>
               <h3 className="font-semibold text-white mb-3">Kategori</h3>
               <div className="flex flex-col gap-3">
-                {kategoriList.map((kat) => {
+                {categoryFilters.map((kat) => {
                   const checked = selectedCategory === kat.value;
 
                   return (
@@ -211,11 +221,10 @@ export default function CustomerMenuPage() {
                     >
                       <div
                         onClick={() => setSelectedCategory(kat.value)}
-                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${
-                          checked
-                            ? 'bg-neutral-200 border-neutral-200'
-                            : 'border-neutral-700 hover:border-neutral-400'
-                        }`}
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${checked
+                          ? 'bg-neutral-200 border-neutral-200'
+                          : 'border-neutral-700 hover:border-neutral-400'
+                          }`}
                       >
                         {checked && (
                           <svg
@@ -235,9 +244,8 @@ export default function CustomerMenuPage() {
                       </div>
 
                       <span
-                        className={`transition-colors ${
-                          checked ? 'text-white font-medium' : 'text-neutral-400'
-                        }`}
+                        className={`transition-colors ${checked ? 'text-white font-medium' : 'text-neutral-400'
+                          }`}
                       >
                         {kat.label}
                       </span>
@@ -251,33 +259,32 @@ export default function CustomerMenuPage() {
           {/* Main Content */}
           <main className="flex-1">
             <div className="flex flex-col gap-6 mb-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                  <span className="text-white font-medium">Menu</span>
+                </div>
                 <div>
-                  <h1 className="text-5xl font-semibold text-white">Daftar Menu</h1>
+                  <h1 className="text-5xl font-bold text-white">Daftar Menu</h1>
                 </div>
               </div>
 
-              {/* --- BAGIAN YANG DIUPDATE START --- */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <p className="text-neutral-400 text-sm mt-2">
                   Ditemukan {filteredMenu.length} menu
                 </p>
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                   <p className="text-neutral-400 text-sm whitespace-nowrap">Urutkan</p>
-                  
-                  {/* Container width diset agar Select tidak terlalu lebar */}
-                  <div className="w-full sm:w-44"> 
+                  <div className="w-full sm:w-44">
+                    {/* Menggunakan SORT_OPTIONS dari import */}
                     <Select
-                      options={sortOptions}
+                      options={[...SORT_OPTIONS]} 
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
+                      onChange={(e) => setSortBy(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
-              {/* --- BAGIAN YANG DIUPDATE END --- */}
 
-              {/* Tag Filters (tetap sama) */}
               <div className="flex flex-wrap items-center gap-2 text-sm my-8">
                 {(minPrice !== MIN || maxPrice !== MAX) && (
                   <span className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 text-white rounded-lg">
@@ -317,7 +324,6 @@ export default function CustomerMenuPage() {
               </div>
             </div>
 
-            {/* Menu Grid (tetap sama) */}
             {filteredMenu.length === 0 ? (
               <div className="text-center py-20 bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-800">
                 <p className="text-neutral-400 font-medium">Menu tidak ditemukan</p>
@@ -332,7 +338,6 @@ export default function CustomerMenuPage() {
                       key={item.id_masakan}
                       className="bg-white dark:bg-neutral-900 hover:bg-neutral-800 border-2 border-transparent hover:border-neutral-700 rounded-2xl p-6 pt-28 shadow-[0_15px_40px_rgba(0,0,0,0.5)] transition-all duration-300 group relative "
                     >
-                      {/* ... (Isi card tetap sama) ... */}
                       <div className="absolute top-6 right-6 flex items-center gap-1 px-2 py-1 rounded-full z-10 shadow-sm">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-[10px] font-bold text-neutral-400">4.8/5</span>

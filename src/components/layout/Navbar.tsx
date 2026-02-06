@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { Menu, User, Settings, Moon, Sun, ChevronDown, LogOut } from 'lucide-react'; // Tambahkan LogOut untuk ikon logout
+import Image from 'next/image';
+import { Menu, User, Settings, Moon, Sun, ChevronDown, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -57,8 +58,14 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             <Menu className="w-5 h-5 text-neutral-700 dark:text-neutral-200" />
           </button>
 
-          <div className="text-orange-600 font-bold text-2xl tracking-tight">
-            CaffeeIn
+          <div className="relative w-28 h-12"> {/* Atur ukuran container logo di sini */}
+            <Image
+              src="/images/CaffeeIn_logo.svg"
+              alt="CaffeeIn Logo"
+              fill
+              className="object-contain object-left"
+              priority
+            />
           </div>
         </div>
 

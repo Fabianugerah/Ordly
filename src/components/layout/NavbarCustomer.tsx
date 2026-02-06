@@ -4,6 +4,7 @@ import { Search, ShoppingCart, Clock, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import Link from 'next/link';
+import Image from 'next/image'; // Import Image
 import { useState, useEffect } from 'react';
 
 interface GuestNavbarProps {
@@ -14,12 +15,12 @@ interface GuestNavbarProps {
 export default function GuestNavbar({ searchTerm, onSearchChange }: GuestNavbarProps) {
     const router = useRouter();
     const { items } = useCartStore();
-    const [time, setTime] = useState<Date | null>(null); // Mulai dengan null untuk mencegah hydration mismatch
+    const [time, setTime] = useState<Date | null>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Update waktu setiap detik
     useEffect(() => {
-        setTime(new Date()); // Set waktu awal di client
+        setTime(new Date());
         const timer = setInterval(() => {
             setTime(new Date());
         }, 1000);
@@ -57,12 +58,20 @@ export default function GuestNavbar({ searchTerm, onSearchChange }: GuestNavbarP
                     
                     {/* LEFT: Logo & Search Desktop */}
                     <div className="flex items-center gap-4 sm:gap-8 flex-1">
-                        {/* Logo */}
+                        {/* Logo Image */}
                         <Link 
                             href="/login" 
-                            className="flex items-center gap-2 font-extrabold text-xl text-white cursor-pointer tracking-tight hover:opacity-90 transition-opacity"
+                            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
                         >
-                            CaffeeIn
+                            <div className="relative w-28 h-12"> {/* Atur ukuran container logo di sini */}
+                                <Image
+                                    src="/images/CaffeeIn_logo.svg" 
+                                    alt="CaffeeIn Logo"
+                                    fill
+                                    className="object-contain object-left"
+                                    priority
+                                />
+                            </div>
                         </Link>
                         
                         {/* Search Desktop (Hidden on Mobile) */}
@@ -70,7 +79,7 @@ export default function GuestNavbar({ searchTerm, onSearchChange }: GuestNavbarP
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 transition-colors" />
                             <input
                                 placeholder="Cari menu favorit..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-neutral-900/50 text-white border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-orange-500 placeholder:text-neutral-500 transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-neutral-900/50 text-white border border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-neutral-500 placeholder:text-neutral-500 transition-all"
                                 value={searchTerm}
                                 onChange={(e) => onSearchChange(e.target.value)}
                             />

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Copy,
@@ -11,6 +12,9 @@ import {
   Clock,
   Building2,
   ShieldCheck,
+  ChevronRight,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -23,6 +27,9 @@ import Footer from '@/components/layout/FooterCustomer';
 
 // KONFIGURASI PAJAK (10%)
 const TAX_RATE = 0.10;
+
+// KONFIGURASI WAKTU PEMBAYARAN (dalam detik)
+const PAYMENT_TIMEOUT = 15 * 60; // 15 menit = 900 detik
 
 function PaymentContent() {
   const router = useRouter();
@@ -40,6 +47,13 @@ function PaymentContent() {
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // State untuk countdown timer
+  const [timeLeft, setTimeLeft] = useState(PAYMENT_TIMEOUT);
+
+  // State untuk modal sukses
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successTransaksi, setSuccessTransaksi] = useState<any>(null);
 
   // State untuk perhitungan harga
   const [priceDetails, setPriceDetails] = useState({
@@ -71,6 +85,60 @@ function PaymentContent() {
       });
     }
   }, [order]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!paymentInfo) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Redirect atau tampilkan pesan timeout
+          alert('Waktu pembayaran habis. Silakan buat pesanan baru.');
+          router.push('/guest/menu');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [paymentInfo]);
+
+  // Polling untuk cek status pembayaran
+  useEffect(() => {
+    if (!paymentInfo) return;
+
+    const checkPaymentStatus = async () => {
+      try {
+        const { data: transaksi } = await supabase
+          .from('transaksi')
+          .select('*')
+          .eq('id_order', order.id_order)
+          .single();
+
+        if (transaksi && transaksi.status_pembayaran === 'lunas') {
+          setSuccessTransaksi(transaksi);
+          setShowSuccessModal(true);
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+      }
+    };
+
+    // Cek setiap 3 detik
+    const interval = setInterval(checkPaymentStatus, 3000);
+
+    return () => clearInterval(interval);
+  }, [paymentInfo, order]);
+
+  // Format waktu dari detik ke MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const fetchOrderDetails = async (orderId: number) => {
     try {
@@ -184,7 +252,7 @@ function PaymentContent() {
       const response = await paymentService.createSelfPayment({
         id_order: order.id_order,
         id_user: user?.id_user!,
-        total_bayar: priceDetails.total, // MENGGUNAKAN TOTAL + PAJAK
+        total_bayar: priceDetails.total,
         metode_pembayaran: method.value,
         payment_details: {
           provider: selectedMethodId,
@@ -196,11 +264,8 @@ function PaymentContent() {
       }
 
       setPaymentInfo(response.payment_info);
-
-      // Refresh otomatis ke receipt setelah 5 detik (simulasi sukses)
-      setTimeout(() => {
-        router.push(`/guest/receipt?transaksi=${response.transaksi.id_transaksi}`);
-      }, 15000);
+      // Reset timer ketika payment info diterima
+      setTimeLeft(PAYMENT_TIMEOUT);
 
     } catch (error: any) {
       console.error('Payment error:', error);
@@ -214,6 +279,66 @@ function PaymentContent() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    if (successTransaksi) {
+      router.push(`/guest/receipt?transaksi=${successTransaksi.id_transaksi}`);
+    }
+  };
+
+  const handleManualConfirmPayment = async () => {
+    if (!confirm('Apakah Anda yakin sudah menyelesaikan pembayaran?')) {
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      // Cek apakah transaksi sudah ada
+      const { data: existingTransaksi, error: fetchError } = await supabase
+        .from('transaksi')
+        .select('*')
+        .eq('id_order', order.id_order)
+        .single();
+
+      if (fetchError) {
+        throw new Error('Transaksi tidak ditemukan');
+      }
+
+      // Update status menjadi lunas
+      const { data: updatedTransaksi, error: updateError } = await supabase
+        .from('transaksi')
+        .update({ 
+          status_pembayaran: 'lunas'
+        })
+        .eq('id_transaksi', existingTransaksi.id_transaksi)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Update status order menjadi selesai
+      const { error: orderError } = await supabase
+        .from('order')
+        .update({ status_order: 'selesai' })
+        .eq('id_order', order.id_order);
+
+      if (orderError) {
+        console.error('Error updating order status:', orderError);
+      }
+
+      // Tampilkan modal sukses
+      setSuccessTransaksi(updatedTransaksi);
+      setShowSuccessModal(true);
+
+    } catch (error: any) {
+      console.error('Error confirming payment:', error);
+      alert(error.message || 'Gagal mengkonfirmasi pembayaran. Pastikan pembayaran sudah dibuat.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (loading || cancelling) {
@@ -233,22 +358,101 @@ function PaymentContent() {
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white flex flex-col">
       <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
-      <main className="flex-1">
-        {/* Header & Back Button */}
-        <div className="sticky top-0 z-10 bg-neutral-50/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
-          <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-4">
+      {/* Modal Pembayaran Berhasil */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl max-w-md w-full p-8 relative animate-scale-in border border-neutral-200 dark:border-neutral-800">
+            {/* Close Button */}
             <button
-              onClick={handleBackToOrder}
-              disabled={processing || cancelling}
-              className="p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              onClick={handleCloseSuccessModal}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <X className="w-5 h-5 text-neutral-500" />
             </button>
-            <h1 className="text-xl font-semibold">Back To Checkout</h1>
+
+            {/* Success Icon */}
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center animate-bounce-in">
+                <CheckCircle2 className="w-12 h-12 text-white" strokeWidth={2.5} />
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+                  Pembayaran Berhasil!
+                </h2>
+                <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+                  Transaksi Anda telah berhasil diproses
+                </p>
+              </div>
+
+              {/* Transaction Details */}
+              <div className="w-full bg-neutral-50 dark:bg-neutral-800 rounded-2xl p-4 space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600 dark:text-neutral-400">ID Transaksi</span>
+                  <span className="font-mono font-semibold text-neutral-900 dark:text-white">
+                    #{successTransaksi?.id_transaksi}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600 dark:text-neutral-400">Total Bayar</span>
+                  <span className="font-bold text-lg text-green-600 dark:text-green-400">
+                    Rp {priceDetails.total.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Message */}
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+                Pesanan Anda sedang disiapkan. Anda akan diarahkan ke halaman struk dalam beberapa saat.
+              </p>
+
+              {/* Action Button */}
+              <Button
+                onClick={handleCloseSuccessModal}
+                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all"
+              >
+                Lihat Struk Pembayaran
+              </Button>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="max-w-5xl mx-auto px-4 py-8">
+      <main className="flex-1 px-4 md:px-8 py-8 space-y-8">
+        {/* Header & Back Button */}
+
+        <div className="max-w-5xl mx-auto flex items-center gap-4 justify-between">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center text-center gap-2 text-sm text-neutral-500">
+              <button onClick={handleBackToOrder}
+                disabled={processing || cancelling} className="hover:text-white transition-colors flex items-center gap-1">
+                Menu
+              </button>
+              <ChevronRight className="w-3 h-3" />
+              <button onClick={handleBackToOrder}
+                disabled={processing || cancelling} className="hover:text-white transition-colors flex items-center gap-1">
+                Order
+              </button>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-white font-medium">Payment</span>
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white">Payment</h1>
+            </div>
+          </div>
+
+          <button
+            onClick={handleBackToOrder}
+            disabled={processing || cancelling}
+            className="flex items-center gap-2 hover:text-neutral-400 hover:underline transition-colors duration-300"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">Back To Checkout</span>
+          </button>
+        </div>
+
+        <div className="max-w-5xl mx-auto py-2">
 
           <PaymentSteps currentStep={2} />
 
@@ -256,9 +460,11 @@ function PaymentContent() {
             /* --- Payment Processing View (QR / VA) --- */
             <div className="max-w-md mx-auto mt-8 text-center animate-fade-in">
               <div className="mb-6">
-                <Clock className="w-12 h-12 text-blue-500 mx-auto animate-pulse" />
+                <Clock className={`w-12 h-12 mx-auto ${timeLeft < 60 ? 'text-red-500 animate-pulse' : 'text-neutral-500 '}`} />
                 <h2 className="text-2xl font-bold mt-4">Selesaikan Pembayaran</h2>
-                <p className="text-neutral-500 text-sm mt-1">Waktu tersisa: 14:59</p>
+                <p className={`text-sm mt-1 font-mono font-semibold ${timeLeft < 60 ? 'text-red-500' : 'text-neutral-500'}`}>
+                  Waktu tersisa: {formatTime(timeLeft)}
+                </p>
               </div>
 
               <Card className="p-6 border-blue-500/30 bg-blue-50/50 dark:bg-blue-900/10">
@@ -290,13 +496,34 @@ function PaymentContent() {
                   </div>
                 )}
 
-                <div className="text-xs text-neutral-500 mt-4 bg-white dark:bg-neutral-800 p-3 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                <div className="text-xs text-neutral-500">
                   <p className="font-semibold mb-1">Total Tagihan:</p>
                   <p className="text-lg font-bold text-neutral-900 dark:text-white">Rp {priceDetails.total.toLocaleString('id-ID')}</p>
                 </div>
 
                 <p className="text-xs text-neutral-400 mt-4 animate-pulse">Halaman ini akan otomatis refresh setelah pembayaran berhasil...</p>
               </Card>
+
+              {/* Button Manual Confirm Payment */}
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center gap-2 text-xs text-neutral-500">
+                  <div className="flex-1 border-t border-neutral-700"></div>
+                  <span>atau</span>
+                  <div className="flex-1 border-t border-neutral-700"></div>
+                </div>
+                
+                <Button
+                  onClick={handleManualConfirmPayment}
+                  disabled={processing}
+                  className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all"
+                >
+                  {processing ? 'Memproses...' : '✓ Saya Sudah Membayar'}
+                </Button>
+                
+                <p className="text-xs text-center text-neutral-500">
+                  Klik tombol di atas setelah Anda menyelesaikan pembayaran
+                </p>
+              </div>
             </div>
           ) : (
             /* --- Selection View (Two Columns) --- */
@@ -327,7 +554,7 @@ function PaymentContent() {
                             <Image src={m.icon} alt={m.name} fill className="object-contain rounded-lg" />
                           </div>
                           <div className="flex-1">
-                            <p className="font-bold text-sm">{m.name}</p>
+                            <p className="font-semibold text-sm">{m.name}</p>
                             <p className="text-xs text-neutral-500">{m.instructions}</p>
                           </div>
                           {selectedMethodId === m.id && <div className="bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-white" /> </div>}
@@ -354,7 +581,8 @@ function PaymentContent() {
                           <div className="relative w-12 h-12 mb-1">
                             <Image src={m.icon} alt={m.name} fill className="object-contain rounded-lg" />
                           </div>
-                          <span className="text-xs font-semibold">{m.name}</span>
+                          <span className="text-sm font-semibold">{m.name}</span>
+                          {selectedMethodId === m.id && <div className="absolute top-2 right-2 bg-black rounded-full p-1"><Check className="w-3 h-3 text-white" /></div>}
                         </button>
                       ))}
                     </div>
@@ -378,7 +606,7 @@ function PaymentContent() {
                             <Image src={m.icon} alt={m.name} fill className="object-contain rounded-lg" />
                           </div>
                           <div className="flex-1">
-                            <p className="font-bold text-sm">{m.name}</p>
+                            <p className="text-sm font-semibold">{m.name}</p>
                           </div>
                           {selectedMethodId === m.id && <div className="bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-white" /> </div>}
                         </button>
@@ -388,7 +616,7 @@ function PaymentContent() {
                 </Card>
               </div>
 
-              
+
               {/* Kolom Kanan: Ringkasan Pembayaran (STYLE BARU) */}
               <div className="lg:col-span-1">
                 <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6 sticky top-24 shadow-sm">
@@ -438,7 +666,7 @@ function PaymentContent() {
                     </Button>
 
                     <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-400">
-                      <ShieldCheck className="w-3 h-3" />
+                      <ShieldCheck className="w-4 h-4" />
                       <span>Pembayaran Aman & Terenkripsi</span>
                     </div>
                   </div>

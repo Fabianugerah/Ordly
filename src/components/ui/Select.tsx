@@ -80,7 +80,7 @@ const Select = React.forwardRef<HTMLInputElement, SelectProps>(
               border border-neutral-300 dark:border-neutral-800
               rounded-lg
               transition-all
-              focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-transparent
+              focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-transparent
               ${disabled ? 'bg-neutral-100 dark:bg-neutral-800 cursor-not-allowed opacity-50' : 'cursor-pointer'}
               ${error ? 'border-red-500 focus:ring-red-500' : ''}
               ${className}
@@ -107,7 +107,7 @@ const Select = React.forwardRef<HTMLInputElement, SelectProps>(
                    - rounded-xl
                    - shadow-lg
                 */}
-              <div className="bg-white dark:bg-neutral-900/60 backdrop-blur-md rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-800 py-2 max-h-60 overflow-y-auto">
+              <div className="bg-white dark:bg-neutral-900/60 backdrop-blur-md rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-800 py-2 ">
                 {options.length > 0 ? (
                   options.map((option) => (
                     <button

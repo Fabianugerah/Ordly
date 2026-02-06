@@ -11,14 +11,6 @@ import { supabase } from '@/lib/supabase';
 import { Plus, Search, Edit, Trash2, Upload, X, AlertCircle, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MENU_CATEGORIES, MENU_STATUS } from '@/constants/options';
 
-// Opsi untuk Filter Dropdown
-const FILTER_CATEGORIES = [
-  { value: 'all', label: 'Semua Kategori' },
-  { value: 'makanan', label: 'Makanan' },
-  { value: 'minuman', label: 'Minuman' },
-  { value: 'dessert', label: 'Dessert' },
-];
-
 export default function MenuManagementPage() {
   const [menus, setMenus] = useState<any[]>([]);
   const [filteredMenus, setFilteredMenus] = useState<any[]>([]);
@@ -26,7 +18,7 @@ export default function MenuManagementPage() {
 
   // --- PAGINATION STATE ---
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Jumlah item per halaman
+  const [itemsPerPage] = useState(10);
 
   // Filter & Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -325,12 +317,12 @@ export default function MenuManagementPage() {
                 placeholder="Cari nama menu..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+                className="w-full pl-12 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-500 transition-all"
               />
             </div>
             <div className="w-full md:w-64">
               <Select
-                options={FILTER_CATEGORIES}
+                options={MENU_CATEGORIES}
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="!bg-neutral-50 dark:!bg-neutral-800 !py-2.5"
@@ -341,7 +333,7 @@ export default function MenuManagementPage() {
 
         {/* --- Table --- */}
         <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col">
-          <div className="overflow-x-auto min-h-[400px]">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
                 <tr>
@@ -557,15 +549,15 @@ export default function MenuManagementPage() {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-all bg-transparent group">
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl cursor-pointer hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-all bg-transparent group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6 text-neutral-400 group-hover:text-orange-500" />
+                    <div className="w-12 h-12 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-3 transition-transform">
+                      <Upload className="w-6 h-6 text-neutral-700 group-hover:text-neutral-500" />
                     </div>
                     <p className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
                       <span className="font-semibold text-neutral-700 dark:text-neutral-300">Klik untuk upload</span>
                     </p>
-                    <p className="text-xs text-neutral-400">PNG, JPG (MAX. 20MB)</p>
+                    <p className="text-xs text-neutral-500">PNG, JPG, JPEG (MAX. 20MB)</p>
                   </div>
                   <input
                     type="file"
@@ -625,14 +617,14 @@ export default function MenuManagementPage() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-1">
-                Deskripsi
+                Deskripsi <span className="text-red-500">*</span>
               </label>
               <textarea
                 name="deskripsi"
                 value={formData.deskripsi}
                 onChange={handleChange}
                 placeholder="Deskripsi singkat menu..."
-                rows={3}
+                rows={5}
                 className="w-full px-4 py-2 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all placeholder:text-neutral-400"
               />
             </div>

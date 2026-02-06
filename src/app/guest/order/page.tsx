@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-// Cari baris ini di atas
-import { ShoppingCart, Plus, Minus, ArrowLeft, Users, Check, AlertCircle, RefreshCw, Utensils, X, User, ShoppingBag, Clock } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingCart, Plus, Minus, ArrowLeft, Users, Check, AlertCircle, RefreshCw, Utensils, X, User, ShoppingBag, Clock, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import Navbar from '@/components/layout/NavbarCustomer';
 import Footer from '@/components/layout/FooterCustomer';
@@ -40,9 +40,9 @@ export default function CustomerOrderPage() {
 
   useEffect(() => {
     if (orderType === 'take_away') {
-      setSelectedTable('take_away'); 
+      setSelectedTable('take_away');
     } else {
-      setSelectedTable(''); 
+      setSelectedTable('');
     }
   }, [orderType]);
 
@@ -186,13 +186,17 @@ export default function CustomerOrderPage() {
         <div className="max-w-7xl mx-auto">
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/guest/menu')} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors">
-                <ArrowLeft className="w-6 h-6 text-neutral-400" />
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center text-center gap-2 text-sm text-neutral-500">
+                <Link href="/guest/menu" className="hover:text-white transition-colors flex items-center gap-1">
+                  Menu
+                </Link>
+                <ChevronRight className="w-3 h-3" />
+                <span className="text-white font-medium">Order</span>
+              </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Buat Pesanan</h1>
-                <p className="text-neutral-400 mt-1">Lengkapi data pemesan & pilih meja</p>
+                <h1 className="text-4xl font-bold text-white">Checkout</h1>
+                <p className="text-neutral-500 mt-1">Lengkapi data pemesan & pilih meja</p>
               </div>
             </div>
             <Button onClick={() => router.push('/guest/menu')} variant="primary" className="flex items-center gap-2">
@@ -206,7 +210,7 @@ export default function CustomerOrderPage() {
 
           {error && (
             <div className="flex flex-row gap-2 items-center bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6">
-              <AlertCircle className="text-red-400"/>
+              <AlertCircle className="text-red-400" />
               <p className="text-red-400 text-sm font-semibold">{error}</p>
             </div>
           )}
@@ -247,11 +251,10 @@ export default function CustomerOrderPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => setOrderType('dine_in')}
-                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${
-                          orderType === 'dine_in'
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${orderType === 'dine_in'
                             ? 'border-white bg-white text-black'
                             : 'border-neutral-800 text-neutral-500 hover:border-neutral-500 hover:bg-neutral-800'
-                        }`}
+                          }`}
                       >
                         <Utensils className="w-6 h-6" />
                         <span className="font-bold text-sm">Dine In</span>
@@ -259,11 +262,10 @@ export default function CustomerOrderPage() {
 
                       <button
                         onClick={() => setOrderType('take_away')}
-                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${
-                          orderType === 'take_away'
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${orderType === 'take_away'
                             ? 'border-white bg-white text-black'
                             : 'border-neutral-800 text-neutral-500 hover:border-neutral-500 hover:bg-neutral-800'
-                        }`}
+                          }`}
                       >
                         <ShoppingBag className="w-6 h-6" />
                         <span className="font-bold text-sm">Take Away</span>
@@ -276,7 +278,7 @@ export default function CustomerOrderPage() {
                 {orderType === 'dine_in' ? (
                   <>
                     <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-sm font-bold text-neutral-800 dark:text-white">Pilih Nomor Meja <span className="text-red-500">*</span></h2> 
+                      <h2 className="text-sm font-bold text-neutral-800 dark:text-white">Pilih Nomor Meja <span className="text-red-500">*</span></h2>
                       <button onClick={fetchTables} disabled={loadingTables} className="p-2 hover:bg-neutral-800 rounded-lg">
                         <RefreshCw className={`w-5 h-5 text-neutral-400 ${loadingTables ? 'animate-spin' : ''}`} />
                       </button>
@@ -303,8 +305,8 @@ export default function CustomerOrderPage() {
                         </div>
                         {selectedTable && (
                           <div className="flex gap-2 p-3 items-center bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm font-base">
-                              <div className="border border-green-400 rounded-full p-1"><Check className="w-3 h-3 text-green-400" /></div>
-                              <p>Meja #{selectedTable} Dipilih</p>
+                            <div className="border border-green-400 rounded-full p-1"><Check className="w-3 h-3 text-green-400" /></div>
+                            <p>Meja #{selectedTable} Dipilih</p>
                           </div>
                         )}
                       </>
@@ -313,13 +315,13 @@ export default function CustomerOrderPage() {
                 ) : (
                   /* TAMPILAN JIKA TAKE AWAY */
                   <div className="mt-4 flex flex-col items-center justify-center py-8 border border-dashed border-neutral-800 rounded-xl bg-neutral-900/30">
-                      <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center mb-3">
-                          <Clock className="w-6 h-6 text-neutral-400" />
-                      </div>
-                      <h3 className="text-md font-bold text-white">Pesanan Take Away</h3>
-                      <p className="text-neutral-500 text-xs text-center max-w-[250px] mt-1">
-                          Mohon tunggu di area antrian setelah pembayaran selesai.
-                      </p>
+                    <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center mb-3">
+                      <Clock className="w-6 h-6 text-neutral-400" />
+                    </div>
+                    <h3 className="text-md font-bold text-white">Pesanan Take Away</h3>
+                    <p className="text-neutral-500 text-xs text-center max-w-[250px] mt-1">
+                      Mohon tunggu di area antrian setelah pembayaran selesai.
+                    </p>
                   </div>
                 )}
               </Card>
@@ -409,7 +411,7 @@ export default function CustomerOrderPage() {
             </div>
 
             {/* Detail Pesanan (Sticky Right) */}
-            <div>
+            <div className="sticky top-20 lg:top-24 self-start">
               <Card title="Ringkasan">
                 <div className="space-y-4">
                   {/* Tampilkan Nama di Ringkasan */}
@@ -421,7 +423,7 @@ export default function CustomerOrderPage() {
                     <div className="flex justify-between text-sm items-center">
                       <span className="text-neutral-400">Meja</span>
                       <div className="border border-neutral-700 rounded-lg px-2 py-1 bg-neutral-800 text-sm">
-                      <span className="text-white font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
+                        <span className="text-white font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
                       </div>
                     </div>
                   </div>

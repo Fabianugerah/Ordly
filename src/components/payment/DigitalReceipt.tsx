@@ -30,13 +30,36 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
   const tax = subtotal * 0.10; // Pajak 10%
 
   // 3. LOGIKA PERBAIKAN TIPE PESANAN
-  // Jika no_meja 'TAKEAWAY', paksa status jadi Take Away (untuk mengatasi data lama/error input)
+  // Cek berbagai kondisi untuk memastikan tipe pesanan yang benar
+  const orderData = transaksi.order;
+  const noMeja = orderData?.no_meja?.toString().toUpperCase() || '';
+  const tipePesanan = orderData?.tipe_pesanan?.toString().toLowerCase() || '';
+  
+  // Tentukan apakah Take Away berdasarkan beberapa kondisi:
+  // 1. tipe_pesanan adalah 'take_away' atau 'takeaway'
+  // 2. no_meja adalah 'TAKE_AWAY', 'TAKEAWAY', atau 'TA'
+  // 3. no_meja kosong/null
   const isTakeAway = 
-    transaksi.order?.tipe_pesanan === 'take_away' || 
-    transaksi.order?.no_meja === 'TAKEAWAY';
+    tipePesanan === 'take_away' || 
+    tipePesanan === 'takeaway' ||
+    noMeja === 'TAKE_AWAY' || 
+    noMeja === 'TAKEAWAY' ||
+    noMeja === 'TA' ||
+    noMeja === '' ||
+    !noMeja;
 
   const displayType = isTakeAway ? 'TAKE AWAY' : 'DINE IN';
-  const tableNumber = transaksi.order?.no_meja;
+  const tableNumber = isTakeAway ? null : noMeja;
+
+  // Debug log untuk melihat data yang masuk
+  useEffect(() => {
+    console.log('=== DEBUG RECEIPT ===');
+    console.log('tipe_pesanan:', tipePesanan);
+    console.log('no_meja:', noMeja);
+    console.log('isTakeAway:', isTakeAway);
+    console.log('displayType:', displayType);
+    console.log('tableNumber:', tableNumber);
+  }, [tipePesanan, noMeja, isTakeAway]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -127,7 +150,7 @@ export default function DigitalReceipt({ transaksi, onClose }: DigitalReceiptPro
             </div>
             
             {/* Hanya tampilkan Meja jika BUKAN Take Away */}
-            {!isTakeAway && (
+            {!isTakeAway && tableNumber && (
                 <div className="flex justify-between">
                     <span className="text-neutral-500">Table</span>
                     <span className="font-bold">#{tableNumber}</span>
