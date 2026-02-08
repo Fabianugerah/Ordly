@@ -13,13 +13,20 @@ export default function Button({
   className = '',
   ...props
 }: ButtonProps) {
-  const baseStyles = 'rounded-lg font-medium transition-colors focus:outline-none focus:ring-1 cursor-pointer';
+  const baseStyles = 'rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-neutral-950 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]';
   
   const variants = {
-    primary: 'bg-white text-black  hover:bg-neutral-200',
-    secondary: 'bg-secondary text-white hover:bg-amber-600 focus:ring-amber-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-300',
-    outline: 'border border-neutral-800 text-white hover:bg-neutral-800 hover:text-white focus:ring-neutral-300',
+    // Primary: Light (Hitam) | Dark (Putih)
+    primary: 'bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200 focus:ring-neutral-500',
+    
+    // Secondary: Tetap Oranye (Amber)
+    secondary: 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-500',
+    
+    // Danger: Tetap Merah
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    
+    // Outline: Border menyesuaikan teks dan garis tema
+    outline: 'border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:ring-neutral-400',
   };
   
   const sizes = {

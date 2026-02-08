@@ -47,9 +47,8 @@ export default function PaymentSteps({ currentStep }: PaymentStepsProps) {
         <div className="absolute top-1/2 left-0 w-full -translate-y-1/2 px-12">
           {/* Container Garis Abu-abu (Background) */}
           <div className="w-full h-[3px] bg-neutral-200 dark:bg-neutral-800 rounded-full relative overflow-hidden">
-            {/* Garis Biru (Progress Active) */}
             <div
-              className="absolute top-0 left-0 h-full bg-white transition-all duration-700 ease-in-out rounded-full"
+              className="absolute top-0 left-0 h-full bg-black dark:bg-white transition-all duration-700 ease-in-out rounded-full"
               style={{ width: progressWidth }}
             />
           </div>
@@ -66,20 +65,18 @@ export default function PaymentSteps({ currentStep }: PaymentStepsProps) {
               // FIX: Pastikan bg-white/bg-black ada untuk menutupi garis di belakangnya
               className={`w-6 h-6 rounded-full flex items-center justify-center border-[2px] transition-all duration-500 z-10 
                 ${isCompleted || isCurrent
-                  ? 'border-white bg-white dark:bg-black'
+                  ? 'border-black dark:border-white bg-white dark:bg-black'
                   : 'border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800'
                 }`}
             >
               {isCompleted ? (
                 // Icon Ceklis (Step sudah lewat)
-                <div className="w-full h-full bg-white rounded-full flex items-center justify-center animate-scale-in">
-                  <Check className="w-3.5 h-3.5 text-black stroke-[3]" />
+                <div className="w-full h-full bg-black dark:bg-white rounded-full flex items-center justify-center animate-scale-in">
+                  <Check className="w-3.5 h-3.5 text-white dark:text-black stroke-[3]" />
                 </div>
               ) : isCurrent ? (
-                // Dot Biru (Step sedang aktif)
-                <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+                <div className="w-2.5 h-2.5 bg-black dark:bg-white rounded-full animate-pulse" />
               ) : (
-                // Kosong (Step belum sampai)
                 <div className="w-2 h-2 bg-transparent" />
               )}
             </div>

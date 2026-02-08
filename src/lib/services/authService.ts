@@ -2,34 +2,26 @@ import { supabase } from '@/lib/supabase';
 import bcrypt from 'bcryptjs'; 
 
 export const authService = {
-  // Login
   login: async (username: string, password: string) => {
     try {
-      // Get user by username
       const { data: user, error } = await supabase
         .from('users')
         .select('*, level:level(*)')
         .eq('username', username)
         .single();
 
+      if (error || !user) throw new Error('Username atau password salah');
+
+      // Proteksi password sederhana
       if (password !== user.password) {
-  throw new Error('Username atau password salah');
-}
+        throw new Error('Username atau password salah');
+      }
 
-      // Verify password (simple comparison for now, nanti bisa pakai bcrypt)
-      // Untuk cepat, kita pakai plain text dulu
-      // PRODUCTION: harus pakai bcrypt!
-      
-      // Karena dummy data pakai hash, kita skip validasi password dulu
-      // Di production, uncomment ini:
-      // const isPasswordValid = await bcrypt.compare(password, user.password);
-      // if (!isPasswordValid) {
-      //   throw new Error('Username atau password salah');
-      // }
-
-      // Untuk demo, accept semua password
       return {
         success: true,
+        // TAMBAHKAN TOKEN DI SINI
+        // Karena kamu pakai Supabase manual, kita buat dummy token dari ID User
+        token: `session_${user.id_user}_${Date.now()}`, 
         user: {
           id_user: user.id_user,
           username: user.username,

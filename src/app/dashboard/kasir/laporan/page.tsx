@@ -12,19 +12,23 @@ import {
   Download,
   Banknote,
   CreditCard,
-  Smartphone
+  Smartphone,
+  UserCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+// Import Components & Chart
+import DateRangePicker from '@/components/ui/DateRangePicker';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function KasirLaporanPage() {
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 30))
-      .toISOString()
-      .split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
+  
+  // Menggunakan Date Object untuk DateRangePicker
+  const [dateRange, setDateRange] = useState<{ startDate: Date | null; endDate: Date | null }>({
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)),
+    endDate: new Date(),
   });
 
   const [reportData, setReportData] = useState({
@@ -40,12 +44,11 @@ export default function KasirLaporanPage() {
       qris: { count: 0, total: 0 },
     },
     dailyRevenue: [] as any[],
-    hourlyDistribution: [] as any[],
     topDays: [] as any[],
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && dateRange.startDate && dateRange.endDate) {
       fetchReportData();
     }
   }, [dateRange, user]);
@@ -54,21 +57,26 @@ export default function KasirLaporanPage() {
     try {
       setLoading(true);
 
-      // Fetch all transactions in period
+      if (!dateRange.startDate || !dateRange.endDate) return;
+
+      const startDateStr = new Intl.DateTimeFormat('en-CA').format(dateRange.startDate);
+      const endDateStr = new Intl.DateTimeFormat('en-CA').format(dateRange.endDate);
+
+      // Fetch all transactions in period (Global Store Stats)
       const { data: allTransaksi } = await supabase
         .from('transaksi')
         .select('*')
-        .gte('tanggal', dateRange.startDate)
-        .lte('tanggal', dateRange.endDate)
+        .gte('tanggal', startDateStr)
+        .lte('tanggal', endDateStr)
         .order('created_at', { ascending: false });
 
-      // Fetch my transactions (by this kasir)
+      // Fetch my transactions (Kinerja Kasir Ini)
       const { data: myTransaksi } = await supabase
         .from('transaksi')
         .select('*')
         .eq('id_user', user?.id_user)
-        .gte('tanggal', dateRange.startDate)
-        .lte('tanggal', dateRange.endDate);
+        .gte('tanggal', startDateStr)
+        .lte('tanggal', endDateStr);
 
       if (!allTransaksi) {
         setLoading(false);
@@ -88,25 +96,19 @@ export default function KasirLaporanPage() {
       const paymentMethods = {
         tunai: {
           count: allTransaksi.filter((t) => t.metode_pembayaran === 'tunai').length,
-          total: allTransaksi
-            .filter((t) => t.metode_pembayaran === 'tunai')
-            .reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0),
+          total: allTransaksi.filter((t) => t.metode_pembayaran === 'tunai').reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0),
         },
         debit: {
           count: allTransaksi.filter((t) => t.metode_pembayaran === 'debit').length,
-          total: allTransaksi
-            .filter((t) => t.metode_pembayaran === 'debit')
-            .reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0),
+          total: allTransaksi.filter((t) => t.metode_pembayaran === 'debit').reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0),
         },
         qris: {
           count: allTransaksi.filter((t) => t.metode_pembayaran === 'qris').length,
-          total: allTransaksi
-            .filter((t) => t.metode_pembayaran === 'qris')
-            .reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0),
+          total: allTransaksi.filter((t) => t.metode_pembayaran === 'qris').reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0),
         },
       };
 
-      // Daily revenue
+      // Daily revenue (For Chart)
       const revenueByDate: { [key: string]: number } = {};
       allTransaksi.forEach((t) => {
         if (!revenueByDate[t.tanggal]) {
@@ -119,38 +121,24 @@ export default function KasirLaporanPage() {
         .map(([date, revenue]) => ({
           date,
           revenue,
-          formattedDate: new Date(date).toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'short',
-          }),
+          formattedDate: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
         }))
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-7); // Last 7 days
+        .sort((a, b) => a.date.localeCompare(b.date));
 
       // Top revenue days
       const topDays = Object.entries(revenueByDate)
         .map(([date, revenue]) => ({
           date,
           revenue,
-          formattedDate: new Date(date).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          }),
+          formattedDate: new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }),
         }))
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 5);
 
       setReportData({
-        summary: {
-          totalTransaksi,
-          totalRevenue,
-          avgTransactionValue,
-          myTransactions,
-        },
+        summary: { totalTransaksi, totalRevenue, avgTransactionValue, myTransactions },
         paymentMethods,
         dailyRevenue,
-        hourlyDistribution: [],
         topDays,
       });
     } catch (error) {
@@ -161,7 +149,7 @@ export default function KasirLaporanPage() {
   };
 
   const handleExport = () => {
-    alert('Export feature - Coming soon!');
+    alert('Fitur Export PDF akan segera tersedia!');
   };
 
   if (loading) {
@@ -174,363 +162,222 @@ export default function KasirLaporanPage() {
     );
   }
 
+  // --- STAT CARD COMPONENT (Inline) ---
+  const StatCard = ({ title, value, subValue, icon: Icon, colorClass }: any) => (
+    <Card className={`relative overflow-hidden border-none ${colorClass} text-white`}>
+        <div className="flex items-start justify-between">
+            <div>
+                <p className="text-white/80 text-sm mb-1 font-medium">{title}</p>
+                <h3 className="text-2xl font-bold">{value}</h3>
+                {subValue && <p className="text-white/70 text-xs mt-2">{subValue}</p>}
+            </div>
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Icon className="w-6 h-6 text-white" />
+            </div>
+        </div>
+    </Card>
+  );
+
   return (
     <DashboardLayout allowedRoles={['kasir']}>
       <div className="space-y-6">
+        
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Laporan Kasir</h1>
-            <p className="text-gray-600 mt-1">Ringkasan transaksi dan pembayaran</p>
+            <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Laporan Kasir</h1>
+            <p className="text-neutral-600 dark:text-neutral-400 mt-1">Ringkasan transaksi dan setoran harian</p>
           </div>
           <Button onClick={handleExport} variant="outline" className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export
+            <Download className="w-4 h-4" /> Export Laporan
           </Button>
         </div>
 
-        {/* Date Range */}
-        <Card>
-          <div className="flex flex-col md:flex-row items-end gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Periode Laporan
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+        {/* Filter Section (DateRangePicker) */}
+        <Card className="p-4 bg-neutral-50 dark:bg-[#0a0a0a] border border-neutral-200 dark:border-neutral-800">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+             <div className="w-full sm:w-auto">
+                <DateRangePicker 
+                    startDate={dateRange.startDate} 
+                    endDate={dateRange.endDate} 
+                    onChange={(start, end) => setDateRange({ startDate: start, endDate: end })}
                 />
-                <span className="flex items-center">s/d</span>
-                <input
-                  type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-            <Button onClick={fetchReportData}>Generate Laporan</Button>
+             </div>
+             <Button onClick={() => fetchReportData()} className="w-full sm:w-auto">
+                Terapkan Filter
+             </Button>
           </div>
         </Card>
 
-        {/* Summary Stats */}
+        {/* Summary Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-8 h-8" />
-            </div>
-            <p className="text-green-100 text-sm mb-1">Total Pendapatan</p>
-            <p className="text-3xl font-bold">
-              Rp {(reportData.summary.totalRevenue / 1000000).toFixed(1)}jt
-            </p>
-            <p className="text-green-100 text-xs mt-2">Semua transaksi</p>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <Receipt className="w-8 h-8" />
-            </div>
-            <p className="text-blue-100 text-sm mb-1">Total Transaksi</p>
-            <p className="text-3xl font-bold">{reportData.summary.totalTransaksi}</p>
-            <p className="text-blue-100 text-xs mt-2">Transaksi berhasil</p>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-8 h-8" />
-            </div>
-            <p className="text-purple-100 text-sm mb-1">Rata-rata Transaksi</p>
-            <p className="text-2xl font-bold">
-              Rp {(reportData.summary.avgTransactionValue / 1000).toFixed(0)}k
-            </p>
-            <p className="text-purple-100 text-xs mt-2">Per transaksi</p>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <Receipt className="w-8 h-8" />
-            </div>
-            <p className="text-amber-100 text-sm mb-1">Transaksi Saya</p>
-            <p className="text-3xl font-bold">{reportData.summary.myTransactions}</p>
-            <p className="text-amber-100 text-xs mt-2">Yang saya proses</p>
-          </Card>
+          <StatCard 
+            title="Total Pendapatan" 
+            value={`Rp ${(reportData.summary.totalRevenue / 1000000).toFixed(1)}jt`}
+            subValue="Semua transaksi periode ini"
+            icon={DollarSign}
+            colorClass="bg-gradient-to-br from-green-500 to-emerald-600"
+          />
+          <StatCard 
+            title="Total Transaksi" 
+            value={reportData.summary.totalTransaksi}
+            subValue="Transaksi berhasil"
+            icon={Receipt}
+            colorClass="bg-gradient-to-br from-blue-500 to-indigo-600"
+          />
+          <StatCard 
+            title="Transaksi Saya" 
+            value={reportData.summary.myTransactions}
+            subValue="Diproses oleh Anda"
+            icon={UserCheck}
+            colorClass="bg-gradient-to-br from-amber-500 to-orange-600"
+          />
+          <StatCard 
+            title="Rata-rata Order" 
+            value={`Rp ${(reportData.summary.avgTransactionValue / 1000).toFixed(0)}k`}
+            subValue="Per struk belanja"
+            icon={TrendingUp}
+            colorClass="bg-gradient-to-br from-purple-500 to-violet-600"
+          />
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Revenue */}
-          <Card title="Pendapatan Harian (7 Hari Terakhir)">
-            {reportData.dailyRevenue.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Tidak ada data</p>
+        {/* Charts & Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Revenue Chart */}
+            <Card className="lg:col-span-2">
+                <h3 className="text-lg font-bold text-neutral-800 dark:text-white mb-4">Tren Pendapatan Harian</h3>
+                <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={reportData.dailyRevenue}>
+                            <defs>
+                                <linearGradient id="colorRevenueKasir" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
+                            <XAxis 
+                                dataKey="formattedDate" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 12, fill: '#9CA3AF'}} 
+                                dy={10}
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 12, fill: '#9CA3AF'}} 
+                                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} 
+                            />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                formatter={(value: any) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="revenue" 
+                                stroke="#10b981" 
+                                strokeWidth={3} 
+                                fillOpacity={1} 
+                                fill="url(#colorRevenueKasir)" 
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </Card>
+
+            {/* Payment Methods List */}
+            <Card>
+                <h3 className="text-lg font-bold text-neutral-800 dark:text-white mb-6">Metode Pembayaran</h3>
+                <div className="space-y-4">
+                    {/* Tunai */}
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-sm">
+                                <Banknote className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-neutral-800 dark:text-white">Tunai</p>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400">{reportData.paymentMethods.tunai.count} Trx</p>
+                            </div>
+                        </div>
+                        <p className="font-bold text-green-600 dark:text-green-400">
+                            Rp {(reportData.paymentMethods.tunai.total / 1000).toFixed(0)}k
+                        </p>
+                    </div>
+
+                    {/* Debit */}
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-sm">
+                                <CreditCard className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-neutral-800 dark:text-white">Debit</p>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400">{reportData.paymentMethods.debit.count} Trx</p>
+                            </div>
+                        </div>
+                        <p className="font-bold text-blue-600 dark:text-blue-400">
+                            Rp {(reportData.paymentMethods.debit.total / 1000).toFixed(0)}k
+                        </p>
+                    </div>
+
+                    {/* QRIS */}
+                    <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-sm">
+                                <Smartphone className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-neutral-800 dark:text-white">QRIS</p>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400">{reportData.paymentMethods.qris.count} Trx</p>
+                            </div>
+                        </div>
+                        <p className="font-bold text-purple-600 dark:text-purple-400">
+                            Rp {(reportData.paymentMethods.qris.total / 1000).toFixed(0)}k
+                        </p>
+                    </div>
+                </div>
+            </Card>
+        </div>
+
+        {/* Top Days Table */}
+        <Card title="Hari Tersibuk">
+            {reportData.topDays.length === 0 ? (
+                <p className="text-center text-neutral-500 py-8">Belum ada data transaksi</p>
             ) : (
-              <div className="space-y-3">
-                {reportData.dailyRevenue.map((data, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-600 w-20">
-                      {data.formattedDate}
-                    </span>
-                    <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-green-400 to-green-600 h-full flex items-center justify-end pr-2"
-                        style={{
-                          width: `${Math.min(
-                            (data.revenue /
-                              Math.max(...reportData.dailyRevenue.map((d) => d.revenue))) *
-                              100,
-                            100
-                          )}%`,
-                        }}
-                      >
-                        <span className="text-xs font-bold text-white">
-                          {data.revenue > 0 && `Rp ${(data.revenue / 1000).toFixed(0)}k`}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-neutral-500 uppercase">Peringkat</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-neutral-500 uppercase">Tanggal</th>
+                                <th className="px-4 py-3 text-right text-xs font-bold text-neutral-500 uppercase">Total Pendapatan</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                            {reportData.topDays.map((day, idx) => (
+                                <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
+                                    <td className="px-4 py-3">
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${idx === 0 ? 'bg-amber-500' : 'bg-neutral-400'}`}>
+                                            {idx + 1}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm font-medium text-neutral-800 dark:text-white">
+                                        {day.formattedDate}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm font-bold text-green-600 text-right tabular-nums">
+                                        Rp {day.revenue.toLocaleString('id-ID')}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
-          </Card>
-
-          {/* Payment Methods */}
-          <Card title="Metode Pembayaran">
-            <div className="space-y-4">
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                      <Banknote className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Tunai</p>
-                      <p className="text-sm text-gray-600">
-                        {reportData.paymentMethods.tunai.count} transaksi
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-green-600">
-                      Rp {(reportData.paymentMethods.tunai.total / 1000).toFixed(0)}k
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {reportData.summary.totalRevenue > 0
-                        ? (
-                            (reportData.paymentMethods.tunai.total /
-                              reportData.summary.totalRevenue) *
-                            100
-                          ).toFixed(1)
-                        : 0}
-                      %
-                    </p>
-                  </div>
-                </div>
-                <div className="w-full bg-green-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{
-                      width: `${
-                        reportData.summary.totalRevenue > 0
-                          ? (reportData.paymentMethods.tunai.total /
-                              reportData.summary.totalRevenue) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <CreditCard className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Debit</p>
-                      <p className="text-sm text-gray-600">
-                        {reportData.paymentMethods.debit.count} transaksi
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-blue-600">
-                      Rp {(reportData.paymentMethods.debit.total / 1000).toFixed(0)}k
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {reportData.summary.totalRevenue > 0
-                        ? (
-                            (reportData.paymentMethods.debit.total /
-                              reportData.summary.totalRevenue) *
-                            100
-                          ).toFixed(1)
-                        : 0}
-                      %
-                    </p>
-                  </div>
-                </div>
-                <div className="w-full bg-blue-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{
-                      width: `${
-                        reportData.summary.totalRevenue > 0
-                          ? (reportData.paymentMethods.debit.total /
-                              reportData.summary.totalRevenue) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <Smartphone className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800">QRIS</p>
-                      <p className="text-sm text-gray-600">
-                        {reportData.paymentMethods.qris.count} transaksi
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-purple-600">
-                      Rp {(reportData.paymentMethods.qris.total / 1000).toFixed(0)}k
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {reportData.summary.totalRevenue > 0
-                        ? (
-                            (reportData.paymentMethods.qris.total /
-                              reportData.summary.totalRevenue) *
-                            100
-                          ).toFixed(1)
-                        : 0}
-                      %
-                    </p>
-                  </div>
-                </div>
-                <div className="w-full bg-purple-200 rounded-full h-2">
-                  <div
-                    className="bg-purple-600 h-2 rounded-full"
-                    style={{
-                      width: `${
-                        reportData.summary.totalRevenue > 0
-                          ? (reportData.paymentMethods.qris.total /
-                              reportData.summary.totalRevenue) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Top Days */}
-        <Card title="Hari dengan Pendapatan Tertinggi">
-          {reportData.topDays.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">Tidak ada data</p>
-          ) : (
-            <div className="space-y-3">
-              {reportData.topDays.map((day, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-800">{day.formattedDate}</p>
-                    <p className="text-sm text-gray-600">{day.date}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-green-600">
-                      Rp {(day.revenue / 1000).toFixed(0)}k
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </Card>
 
-        {/* Summary */}
-        <Card title="Ringkasan Performa">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold text-lg mb-3">📊 Statistik Transaksi</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Total transaksi:</span>
-                  <span className="font-semibold">{reportData.summary.totalTransaksi}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Transaksi saya:</span>
-                  <span className="font-semibold text-blue-600">
-                    {reportData.summary.myTransactions}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Total pendapatan:</span>
-                  <span className="font-semibold">
-                    Rp {reportData.summary.totalRevenue.toLocaleString('id-ID')}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Rata-rata transaksi:</span>
-                  <span className="font-semibold">
-                    Rp {reportData.summary.avgTransactionValue.toLocaleString('id-ID')}
-                  </span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg mb-3">💳 Metode Pembayaran Favorit</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Tunai:</span>
-                  <span className="font-semibold">
-                    {reportData.paymentMethods.tunai.count} transaksi
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">Debit:</span>
-                  <span className="font-semibold">
-                    {reportData.paymentMethods.debit.count} transaksi
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-gray-600">QRIS:</span>
-                  <span className="font-semibold">
-                    {reportData.paymentMethods.qris.count} transaksi
-                  </span>
-                </li>
-                <li className="flex justify-between pt-2 border-t">
-                  <span className="text-gray-600 font-medium">Paling populer:</span>
-                  <span className="font-semibold text-primary">
-                    {reportData.paymentMethods.tunai.count >=
-                      reportData.paymentMethods.debit.count &&
-                    reportData.paymentMethods.tunai.count >= reportData.paymentMethods.qris.count
-                      ? 'Tunai'
-                      : reportData.paymentMethods.debit.count >=
-                        reportData.paymentMethods.qris.count
-                      ? 'Debit'
-                      : 'QRIS'}
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </Card>
       </div>
     </DashboardLayout>
   );

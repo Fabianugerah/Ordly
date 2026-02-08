@@ -1,9 +1,8 @@
-// src/app/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, User, Lock } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
@@ -26,22 +25,22 @@ export default function LoginPage() {
       const role = user.level?.nama_level;
       switch (role) {
         case 'administrator':
-          router.push('/dashboard/admin');
+          router.replace('/dashboard/admin');
           break;
         case 'waiter':
-          router.push('/dashboard/waiter');
+          router.replace('/dashboard/waiter');
           break;
         case 'kasir':
-          router.push('/dashboard/kasir');
+          router.replace('/dashboard/kasir');
           break;
         case 'owner':
-          router.push('/dashboard/owner');
+          router.replace('/dashboard/owner');
           break;
         case 'customer':
-          router.push('/guest/menu');
+          router.replace('/guest/menu');
           break;
         default:
-          router.push('/dashboard');
+          router.replace('/dashboard');
       }
     }
   }, [user, router]);
@@ -68,46 +67,34 @@ export default function LoginPage() {
     try {
       const response = await authService.login(trimmedUsername, trimmedPassword);
 
-      // PERBAIKAN DI SINI: Tambahkan pengecekan !response.user
-      if (!response.success || !response.user) {
-        setError(response.error || 'Login gagal');
-        setLoading(false); // Pastikan loading dimatikan
-        return;
-      }
+      if (response.success && response.user) {
+        // PERBAIKAN: Mengirim response.token (yang kita tambahkan di authService) 
+        // ke dalam setAuth agar Middleware tidak menendang user keluar.
+        setAuth(response.user, response.token);
 
-      setAuth(response.user);
-
-      const role = response.user.level?.nama_level;
-      switch (role) {
-        case 'administrator':
-          router.push('/dashboard/admin');
-          break;
-        case 'waiter':
-          router.push('/dashboard/waiter');
-          break;
-        case 'kasir':
-          router.push('/dashboard/kasir');
-          break;
-        case 'owner':
-          router.push('/dashboard/owner');
-          break;
-        default:
-          router.push('/dashboard');
+        const role = response.user.level?.nama_level;
+        // Gunakan replace agar history login tidak bisa di-back
+        setTimeout(() => {
+            switch (role) {
+                case 'administrator': router.replace('/dashboard/admin'); break;
+                case 'waiter': router.replace('/dashboard/waiter'); break;
+                case 'kasir': router.replace('/dashboard/kasir'); break;
+                case 'owner': router.replace('/dashboard/owner'); break;
+                case 'customer': router.replace('/guest/menu'); break;
+                default: router.replace('/dashboard');
+            }
+        }, 100);
+      } else {
+        setError(response.error || 'Username atau password salah');
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError('Terjadi kesalahan jaringan atau server. Coba lagi nanti.');
+      setError('Terjadi kesalahan jaringan atau server.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handler untuk Guest Access
   const handleGuestAccess = () => {
-    // Create temporary guest session
-    // const guestUser = { ... } // Tidak perlu deklarasi variable jika tidak dipakai langsung di sini
-
-    // Set guest as temporary user (without saving to localStorage permanently)
     sessionStorage.setItem('guest_mode', 'true');
     router.push('/guest/menu');
   };
@@ -128,11 +115,11 @@ export default function LoginPage() {
           {/* Logo */}
           <Link
             href="/login"
-            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+            className="flex items-center mb-20 gap-2 hover:opacity-90 transition-opacity"
           >
-            <div className="relative w-28 h-12"> {/* Atur ukuran container logo di sini */}
+            <div className="relative w-28 h-12">
               <Image
-                src="/images/CaffeeIn_logo.svg"
+                src="/images/caffeein.svg"
                 alt="CaffeeIn Logo"
                 fill
                 className="object-contain object-left"
@@ -150,25 +137,31 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+              <div className="p-3 mb-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <label htmlFor="username" className="sr-only">Username</label>
-              <input
-                id="username"
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Masukkan Username"
-                className="w-full rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 border border-transparent transition-all"
-              />
+              {/* USERNAME INPUT */}
+              <div className="relative">
+                <label htmlFor="username" className="sr-only">Username</label>
+                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" />
+                <input
+                  id="username"
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Masukkan Username"
+                  className="w-full rounded-xl bg-neutral-900 pl-11 pr-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 border border-neutral-800 transition-all"
+                />
+              </div>
 
+              {/* PASSWORD INPUT */}
               <div className="relative">
                 <label htmlFor="password" className="sr-only">Password</label>
+                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -176,7 +169,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Masukkan Password"
-                  className="w-full rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 border border-transparent transition-all"
+                  className="w-full rounded-xl bg-neutral-900 pl-11 pr-10 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 border border-neutral-800 transition-all"
                 />
                 <button
                   type="button"
@@ -199,9 +192,7 @@ export default function LoginPage() {
                     Loading...
                   </>
                 ) : (
-                  <>
-                    Masuk
-                  </>
+                  <>Masuk</>
                 )}
               </button>
             </form>
@@ -209,14 +200,11 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="flex items-center my-6">
               <div className="flex-1 border-t border-neutral-700"></div>
-
               <span className="px-4 text-sm text-neutral-500 whitespace-nowrap">
                 atau
               </span>
-
               <div className="flex-1 border-t border-neutral-700"></div>
             </div>
-
 
             {/* Guest Access Button */}
             <button

@@ -8,15 +8,17 @@ import {
   UtensilsCrossed,
   ShoppingCart,
   Receipt,
-  TrendingUp,
   Clock,
   ArrowUp,
   ArrowDown,
   DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-// Import Recharts untuk grafik
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, 
+  CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area 
+} from 'recharts';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -26,12 +28,13 @@ export default function AdminDashboard() {
     totalTransaksi: 0,
     pendapatanHariIni: 0,
     orderPending: 0,
-    usersGrowth: 12.5,
-    ordersGrowth: 8.3,
-    revenueGrowth: 15.7,
+    // Growth stats (akan dihitung dinamis)
+    usersGrowth: 0,
+    ordersGrowth: 0,
+    revenueGrowth: 0,
+    transaksiGrowth: 0,
   });
   
-  // State tambahan untuk data chart
   const [chartData, setChartData] = useState({
     revenueByDate: [] as any[],
     hourlyOrders: [] as any[],
@@ -45,11 +48,16 @@ export default function AdminDashboard() {
     fetchRecentOrders();
   }, []);
 
+  // Helper untuk menghitung persentase pertumbuhan
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0; // Jika kemarin 0, hari ini ada, anggap 100%
+    return ((current - previous) / previous) * 100;
+  };
+
   const fetchStats = async () => {
     try {
       setLoading(true);
 
-      // Fetch data dasar dan detail_order untuk grafik pola jam
       const [
         { data: users },
         { data: menu },
@@ -57,19 +65,47 @@ export default function AdminDashboard() {
         { data: transaksi },
         { data: detailOrders }
       ] = await Promise.all([
-        supabase.from('users').select('*'),
-        supabase.from('masakan').select('*'),
-        supabase.from('order').select('*'),
-        supabase.from('transaksi').select('*'),
+        supabase.from('users').select('created_at'), // Hanya butuh created_at untuk growth user
+        supabase.from('masakan').select('id_masakan'),
+        supabase.from('order').select('created_at, status_order'),
+        supabase.from('transaksi').select('tanggal, total_bayar'),
         supabase.from('detail_order').select('*, order!inner(created_at, tanggal)')
       ]);
 
-      const today = new Date().toISOString().split('T')[0];
-      const todayTransaksi = transaksi?.filter((t) => t.tanggal === today) || [];
-      const pendapatanHariIni = todayTransaksi.reduce(
-        (sum, t) => sum + parseFloat(t.total_bayar.toString()),
-        0
-      );
+      // --- 1. SETUP TANGGAL ---
+      const todayDate = new Date();
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+
+      const todayStr = todayDate.toISOString().split('T')[0];
+      const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+      // --- 2. HITUNG PENDAPATAN (REVENUE) ---
+      const todayTransaksi = transaksi?.filter((t) => t.tanggal === todayStr) || [];
+      const yesterdayTransaksi = transaksi?.filter((t) => t.tanggal === yesterdayStr) || [];
+
+      const revenueToday = todayTransaksi.reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0);
+      const revenueYesterday = yesterdayTransaksi.reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0);
+      
+      const revenueGrowth = calculateGrowth(revenueToday, revenueYesterday);
+
+      // --- 3. HITUNG PESANAN (ORDERS) ---
+      // Kita hitung growth berdasarkan JUMLAH ORDER BARU hari ini vs kemarin
+      const ordersToday = orders?.filter((o) => o.created_at.startsWith(todayStr)).length || 0;
+      const ordersYesterday = orders?.filter((o) => o.created_at.startsWith(yesterdayStr)).length || 0;
+      
+      const ordersGrowth = calculateGrowth(ordersToday, ordersYesterday);
+
+      // --- 4. HITUNG USER BARU ---
+      const usersToday = users?.filter((u) => u.created_at.startsWith(todayStr)).length || 0;
+      const usersYesterday = users?.filter((u) => u.created_at.startsWith(yesterdayStr)).length || 0;
+
+      const usersGrowth = calculateGrowth(usersToday, usersYesterday);
+
+      // --- 5. HITUNG TRANSAKSI (RECEIPT) ---
+      const txTodayCount = todayTransaksi.length;
+      const txYesterdayCount = yesterdayTransaksi.length;
+      const transaksiGrowth = calculateGrowth(txTodayCount, txYesterdayCount);
 
       const orderPending = orders?.filter((o) => o.status_order === 'pending').length || 0;
 
@@ -78,32 +114,37 @@ export default function AdminDashboard() {
         totalMenu: menu?.length || 0,
         totalOrders: orders?.length || 0,
         totalTransaksi: transaksi?.length || 0,
-        pendapatanHariIni,
+        pendapatanHariIni: revenueToday,
         orderPending,
-        usersGrowth: 12.5,
-        ordersGrowth: 8.3,
-        revenueGrowth: 15.7,
+        usersGrowth,
+        ordersGrowth,
+        revenueGrowth,
+        transaksiGrowth
       });
 
-      // --- LOGIKA CHART (DARI HALAMAN LAPORAN) ---
-      
-      // 1. Proses Tren Pendapatan (7 Hari Terakhir)
+      // --- 6. DATA CHART ---
+      // Revenue Chart
       const revenueMap: { [key: string]: number } = {};
+      for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split('T')[0];
+          revenueMap[dateStr] = 0;
+      }
       transaksi?.forEach((t) => {
-        if (!revenueMap[t.tanggal]) revenueMap[t.tanggal] = 0;
-        revenueMap[t.tanggal] += parseFloat(t.total_bayar);
+        if (revenueMap[t.tanggal] !== undefined) {
+            revenueMap[t.tanggal] += parseFloat(t.total_bayar);
+        }
       });
-
       const revenueByDate = Object.entries(revenueMap)
         .map(([date, revenue]) => ({
           date,
           revenue,
           formattedDate: new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
         }))
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-7); // Ambil 7 data terakhir
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-      // 2. Proses Pola Jam
+      // Hourly Chart
       const hourlyMap: { [key: number]: number } = {};
       detailOrders?.forEach((detail) => {
         if (detail.order?.created_at) {
@@ -112,11 +153,10 @@ export default function AdminDashboard() {
           hourlyMap[hour]++;
         }
       });
-
       const hourlyOrders = Array.from({ length: 24 }, (_, i) => ({
         hour: `${i.toString().padStart(2, '0')}:00`,
         orders: hourlyMap[i] || 0,
-      }));
+      })).filter((_, i) => i >= 8 && i <= 22);
 
       setChartData({ revenueByDate, hourlyOrders });
 
@@ -143,19 +183,19 @@ export default function AdminDashboard() {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      pending: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30',
-      proses: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
-      selesai: 'text-green-600 bg-green-100 dark:bg-green-900/30',
-      dibatalkan: 'text-red-600 bg-red-100 dark:bg-red-900/30',
+      pending: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800',
+      proses: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800',
+      selesai: 'text-green-600 bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800',
+      dibatalkan: 'text-red-600 bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800',
     };
-    return colors[status as keyof typeof colors] || 'text-neutral-600 bg-neutral-100';
+    return colors[status as keyof typeof colors] || 'text-neutral-600 bg-neutral-100 border-neutral-200';
   };
 
   if (loading) {
     return (
       <DashboardLayout allowedRoles={['administrator']}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="animate-spin w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full"></div>
         </div>
       </DashboardLayout>
     );
@@ -163,213 +203,273 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
-      title: 'Total Pendapatan',
-      value: `Rp ${(stats.pendapatanHariIni / 1000).toFixed(0)}k`,
-      subtitle: 'Hari Ini',
+      title: 'Pendapatan Hari Ini',
+      value: `Rp ${(stats.pendapatanHariIni / 1000).toLocaleString('id-ID')}k`,
+      subtitle: 'vs kemarin', // Label perbandingan
       icon: DollarSign,
-      iconBg: 'bg-gradient-to-br from-green-500 to-emerald-600',
+      iconBg: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
       growth: stats.revenueGrowth,
-      isPositive: true,
+      isPositive: stats.revenueGrowth >= 0,
     },
     {
       title: 'Total Pesanan',
-      value: stats.totalOrders,
-      subtitle: 'Semua Waktu',
+      value: stats.totalOrders, // Menampilkan total semua, tapi growthnya berdasarkan "Hari ini vs Kemarin"
+      subtitle: 'Tren harian',
       icon: ShoppingCart,
-      iconBg: 'bg-gradient-to-br from-orange-500 to-red-600',
+      iconBg: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
       growth: stats.ordersGrowth,
-      isPositive: true,
+      isPositive: stats.ordersGrowth >= 0,
     },
     {
       title: 'Pending Orders',
       value: stats.orderPending,
       subtitle: 'Perlu Diproses',
       icon: Clock,
-      iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
-      growth: -2.4,
-      isPositive: false,
+      iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+      growth: 0, // Pending biasanya tidak butuh growth percentage, atau bisa dibuat statis
+      isPositive: true,
+      hideGrowth: true // Custom flag buat hide persentase kalau mau
     },
     {
       title: 'Total User',
       value: stats.totalUsers,
-      subtitle: 'Pengguna Aktif',
+      subtitle: 'Pengguna baru harian',
       icon: Users,
-      iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+      iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
       growth: stats.usersGrowth,
-      isPositive: true,
+      isPositive: stats.usersGrowth >= 0,
     },
     {
       title: 'Total Menu',
       value: stats.totalMenu,
       subtitle: 'Item Tersedia',
       icon: UtensilsCrossed,
-      iconBg: 'bg-gradient-to-br from-purple-500 to-pink-600',
-      growth: 5.2,
+      iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+      growth: 0, // Menu jarang berubah harian
       isPositive: true,
+      hideGrowth: true
     },
     {
-      title: 'Total Transaksi',
+      title: 'Transaksi Selesai',
       value: stats.totalTransaksi,
-      subtitle: 'Pembayaran Selesai',
+      subtitle: 'Tren harian',
       icon: Receipt,
-      iconBg: 'bg-gradient-to-br from-teal-500 to-cyan-600',
-      growth: 18.9,
-      isPositive: true,
+      iconBg: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
+      growth: stats.transaksiGrowth,
+      isPositive: stats.transaksiGrowth >= 0,
     },
   ];
 
   return (
     <DashboardLayout allowedRoles={['administrator']}>
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="space-y-8 pb-10">
         <div>
           <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">
             Dashboard Administrator
           </h1>
-          <p className="text-neutral-600 dark:text-neutral-400 mt-1">
-            Selamat datang! Berikut ringkasan sistem restoran Anda.
+          <p className="text-neutral-500 dark:text-neutral-400 mt-1">
+            Ringkasan performa & aktivitas restoran hari ini.
           </p>
         </div>
 
-        {/* Stats Grid - Tetap Sesuai Style Asli */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {statCards.map((stat, index) => (
             <Card
               key={index}
-              className="relative overflow-hidden border border-neutral-200 dark:border-neutral-800 hover:shadow-xl transition-all duration-300 group"
+              className="relative overflow-hidden hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-800"
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+                <div>
+                  <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-1">
                     {stat.title}
                   </p>
-                  <h3 className="text-3xl font-bold text-neutral-900 dark:text-white mb-1">
+                  <h3 className="text-2xl font-bold text-neutral-900 dark:text-white">
                     {stat.value}
                   </h3>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-500">
-                    {stat.subtitle}
-                  </p>
                   
-                  <div className="flex items-center gap-1 mt-3">
-                    {stat.isPositive ? (
-                      <ArrowUp className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <ArrowDown className="w-4 h-4 text-red-600" />
-                    )}
-                    <span
-                      className={`text-sm font-semibold ${
-                        stat.isPositive ? 'text-green-600' : 'text-red-600'
-                      }`}
-                    >
-                      {Math.abs(stat.growth)}%
-                    </span>
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                      vs bulan lalu
-                    </span>
-                  </div>
+                  {/* Hanya tampilkan growth jika tidak di-hide */}
+                  {!stat.hideGrowth && (
+                    <div className="flex items-center gap-1.5 mt-3">
+                      <span
+                        className={`flex items-center text-xs font-bold px-1.5 py-0.5 rounded ${
+                          stat.isPositive 
+                            ? 'bg-green-50 text-green-600 dark:bg-green-900/20' 
+                            : 'bg-red-50 text-red-600 dark:bg-red-900/20'
+                        }`}
+                      >
+                        {stat.isPositive ? <ArrowUp className="w-3 h-3 mr-0.5" /> : <ArrowDown className="w-3 h-3 mr-0.5" />}
+                        {Math.abs(stat.growth).toFixed(1)}%
+                      </span>
+                      <span className="text-xs text-neutral-400">
+                        {stat.subtitle}
+                      </span>
+                    </div>
+                  )}
+                  {stat.hideGrowth && (
+                     <div className="mt-3 text-xs text-neutral-400">
+                        {stat.subtitle}
+                     </div>
+                  )}
                 </div>
 
-                <div
-                  className={`${stat.iconBg} w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-                >
-                  <stat.icon className="w-8 h-8 text-white" />
+                <div className={`p-3 rounded-xl ${stat.iconBg}`}>
+                  <stat.icon className="w-6 h-6" />
                 </div>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </Card>
           ))}
         </div>
 
-        {/* --- ADDED CHARTS SECTION (FROM LAPORAN) --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <h3 className="text-lg font-semibold mb-4 text-neutral-800 dark:text-white">Tren Pendapatan Harian</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-neutral-800 dark:text-white">Tren Pendapatan</h3>
+                <p className="text-sm text-neutral-500">7 hari terakhir</p>
+              </div>
+              <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData.revenueByDate}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
-                  <XAxis dataKey="formattedDate" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }}
-                    formatter={(value: any) => [`Rp ${value.toLocaleString('id-ID')}`, 'Revenue']}
+                <AreaChart data={chartData.revenueByDate}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" opacity={0.5} />
+                  <XAxis 
+                    dataKey="formattedDate" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{fontSize: 12, fill: '#9CA3AF'}}
+                    dy={10}
                   />
-                  <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} activeDot={{ r: 6 }} />
-                </LineChart>
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{fontSize: 12, fill: '#9CA3AF'}}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} 
+                  />
+                  <Tooltip
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      border: 'none', 
+                      borderRadius: '8px', 
+                      color: '#fff',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                    formatter={(value: any) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#10b981" 
+                    strokeWidth={3} 
+                    fillOpacity={1} 
+                    fill="url(#colorRevenue)" 
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
-          <Card>
-            <h3 className="text-lg font-semibold mb-4 text-neutral-800 dark:text-white">Pola Pesanan per Jam</h3>
+          <Card className="p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-neutral-800 dark:text-white">Jam Sibuk</h3>
+              <p className="text-sm text-neutral-500">Pola pesanan per jam</p>
+            </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData.hourlyOrders}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
-                  <XAxis dataKey="hour" stroke="#9ca3af" style={{ fontSize: '11px' }} />
-                  <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#fff' }}
-                    formatter={(value: any) => [`${value} pesanan`, 'Total']}
+                <BarChart data={chartData.hourlyOrders} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" opacity={0.5} />
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="hour" 
+                    type="category" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{fontSize: 11, fill: '#6B7280'}}
+                    width={40}
                   />
-                  <Bar dataKey="orders" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                  <Tooltip
+                    cursor={{fill: 'transparent'}}
+                    contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
+                  />
+                  <Bar 
+                    dataKey="orders" 
+                    fill="#F97316" 
+                    radius={[0, 4, 4, 0]} 
+                    barSize={15}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </Card>
         </div>
 
-        {/* Recent Orders - Tetap Sesuai Style Asli */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
-                  <ShoppingCart className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-                    Pesanan Terbaru
-                  </h3>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    5 pesanan terakhir
-                  </p>
-                </div>
-              </div>
-              <a
-                href="/dashboard/admin/orders"
-                className="text-sm font-medium text-orange-600 hover:text-orange-700 dark:text-orange-500 dark:hover:text-orange-400"
-              >
-                Lihat Semua →
-              </a>
+        <Card className="border border-neutral-200 dark:border-neutral-800 p-0 overflow-hidden">
+          <div className="p-6 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-900/50">
+            <div>
+              <h3 className="text-lg font-bold text-neutral-800 dark:text-white">Pesanan Terbaru</h3>
+              <p className="text-sm text-neutral-500">Monitor transaksi yang baru masuk</p>
             </div>
+            <a href="/dashboard/admin/orders" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
+              Lihat Semua
+            </a>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider border-b dark:border-neutral-800">
-                    <th className="px-4 py-3">ID Order</th>
-                    <th className="px-4 py-3">Pelanggan</th>
-                    <th className="px-4 py-3">Status</th>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-neutral-50 dark:bg-neutral-800 border-b border-neutral-100 dark:border-neutral-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">Order ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">Pelanggan</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">Tanggal</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-4 text-center text-xs font-bold text-neutral-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800 bg-white dark:bg-neutral-900">
+                {recentOrders.map((order) => (
+                  <tr key={order.id_order} className="group hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-neutral-900 dark:text-white">
+                      #{order.id_order}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 dark:text-neutral-300">
+                      {order.users?.nama_user || 'Guest'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
+                      {new Date(order.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-neutral-800 dark:text-white">
+                      Rp {parseFloat(order.total_harga).toLocaleString('id-ID')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${getStatusColor(order.status_order)}`}>
+                        {order.status_order}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-neutral-800">
-                  {recentOrders.map((order) => (
-                    <tr key={order.id_order} className="group hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-neutral-900 dark:text-white">#{order.id_order}</td>
-                      <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400">{order.users?.nama_user}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(order.status_order)}`}>
-                          {order.status_order}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
+                ))}
+                {recentOrders.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-neutral-500 italic">
+                      Belum ada pesanan terbaru.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </div>
     </DashboardLayout>
   );

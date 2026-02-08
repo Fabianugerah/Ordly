@@ -310,7 +310,7 @@ function PaymentContent() {
       // Update status menjadi lunas
       const { data: updatedTransaksi, error: updateError } = await supabase
         .from('transaksi')
-        .update({ 
+        .update({
           status_pembayaran: 'lunas'
         })
         .eq('id_transaksi', existingTransaksi.id_transaksi)
@@ -404,7 +404,7 @@ function PaymentContent() {
 
               {/* Message */}
               <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
-                Pesanan Anda sedang disiapkan. Anda akan diarahkan ke halaman struk dalam beberapa saat.
+                Pesanan Anda sedang disiapkan. <span>Terima kasih telah berbelanja bersama kami!</span>
               </p>
 
               {/* Action Button */}
@@ -421,33 +421,38 @@ function PaymentContent() {
 
       <main className="flex-1 px-4 md:px-8 py-8 space-y-8">
         {/* Header & Back Button */}
-
-        <div className="max-w-5xl mx-auto flex items-center gap-4 justify-between">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center text-center gap-2 text-sm text-neutral-500">
-              <button onClick={handleBackToOrder}
-                disabled={processing || cancelling} className="hover:text-white transition-colors flex items-center gap-1">
+            <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <button
+                onClick={handleBackToOrder}
+                disabled={processing || cancelling}
+                className="hover:text-neutral-900 dark:hover:text-white transition-colors flex items-center gap-1"
+              >
                 Menu
               </button>
               <ChevronRight className="w-3 h-3" />
-              <button onClick={handleBackToOrder}
-                disabled={processing || cancelling} className="hover:text-white transition-colors flex items-center gap-1">
+              <button
+                onClick={handleBackToOrder}
+                disabled={processing || cancelling}
+                className="hover:text-neutral-900 dark:hover:text-white transition-colors flex items-center gap-1"
+              >
                 Order
               </button>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-white font-medium">Payment</span>
+              <span className="text-neutral-900 dark:text-white font-medium">Payment</span>
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-white">Payment</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white">Payment</h1>
             </div>
           </div>
 
           <button
             onClick={handleBackToOrder}
             disabled={processing || cancelling}
-            className="flex items-center gap-2 hover:text-neutral-400 hover:underline transition-colors duration-300"
+            className="flex items-center gap-2 hover:text-neutral-500 hover:underline transition-colors duration-300 group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span className="text-sm font-medium">Back To Checkout</span>
           </button>
         </div>
@@ -467,12 +472,12 @@ function PaymentContent() {
                 </p>
               </div>
 
-              <Card className="p-6 border-blue-500/30 bg-blue-50/50 dark:bg-blue-900/10">
+              <Card className="p-6 border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
                 {/* QR CODE */}
                 {paymentInfo.qr_code && (
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <p className="text-sm font-semibold mb-3 text-neutral-600 dark:text-neutral-300">Scan QR Code</p>
-                    <div className="bg-white p-4 rounded-xl shadow-sm inline-block">
+                    <div className="bg-white border border-neutral-200 p-4 rounded-xl inline-block">
                       <Image src={paymentInfo.qr_code} alt="QR Code" width={200} height={200} className="mix-blend-multiply" />
                     </div>
                   </div>
@@ -483,16 +488,13 @@ function PaymentContent() {
                   <div className="bg-white dark:bg-neutral-800 p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-left mb-4">
                     <p className="text-xs text-neutral-500 mb-1 uppercase tracking-wider">Nomor Pembayaran / VA</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xl font-mono font-bold tracking-widest text-blue-600 dark:text-blue-400">
+                      <span className="text-xl font-mono font-bold tracking-widest text-black dark:text-white">
                         {paymentInfo.virtual_account}
                       </span>
                       <button onClick={() => copyToClipboard(paymentInfo.virtual_account)} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors">
                         {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-neutral-500" />}
                       </button>
                     </div>
-                    {paymentInfo.account_name && (
-                      <p className="text-xs text-neutral-400 mt-1">a.n {paymentInfo.account_name}</p>
-                    )}
                   </div>
                 )}
 
@@ -505,21 +507,21 @@ function PaymentContent() {
               </Card>
 
               {/* Button Manual Confirm Payment */}
-              <div className="mt-6 space-y-3">
+              <div className="mt-4 space-y-4">
                 <div className="flex items-center gap-2 text-xs text-neutral-500">
-                  <div className="flex-1 border-t border-neutral-700"></div>
-                  <span>atau</span>
-                  <div className="flex-1 border-t border-neutral-700"></div>
+                  <div className="flex-1 border-t border-neutral-400 dark:border-neutral-600"></div>
+                  <span>or</span>
+                  <div className="flex-1 border-t border-neutral-400 dark:border-neutral-600"></div>
                 </div>
-                
+
                 <Button
                   onClick={handleManualConfirmPayment}
                   disabled={processing}
                   className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all"
                 >
-                  {processing ? 'Memproses...' : '✓ Saya Sudah Membayar'}
+                  {processing ? 'Memproses...' : 'Saya Sudah Membayar'}
                 </Button>
-                
+
                 <p className="text-xs text-center text-neutral-500">
                   Klik tombol di atas setelah Anda menyelesaikan pembayaran
                 </p>
@@ -546,8 +548,8 @@ function PaymentContent() {
                           onClick={() => setSelectedMethodId(m.id)}
                           className={`flex items-center gap-4 p-4 rounded-xl border transition-all text-left group
                                     ${selectedMethodId === m.id
-                              ? 'border-white bg-blue-50 dark:bg-white text-black'
-                              : 'border-neutral-200 dark:border-neutral-800 hover:border-white bg-white dark:bg-neutral-900'
+                              ? 'border-black dark:border-white bg-black dark:bg-white text-white dark:text-black'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-500 dark:hover:border-neutral-500 bg-white dark:bg-neutral-900'
                             }`}
                         >
                           <div className="relative w-12 h-12 mb-1">
@@ -557,7 +559,7 @@ function PaymentContent() {
                             <p className="font-semibold text-sm">{m.name}</p>
                             <p className="text-xs text-neutral-500">{m.instructions}</p>
                           </div>
-                          {selectedMethodId === m.id && <div className="bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-white" /> </div>}
+                          {selectedMethodId === m.id && <div className="bg-white dark:bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-black dark:text-white" /> </div>}
                         </button>
                       ))}
                     </div>
@@ -573,8 +575,8 @@ function PaymentContent() {
                           onClick={() => setSelectedMethodId(m.id)}
                           className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all h-32 relative
                                     ${selectedMethodId === m.id
-                              ? 'border-white bg-blue-50 dark:bg-white text-black'
-                              : 'border-neutral-200 dark:border-neutral-800 hover:border-white bg-white dark:bg-neutral-900'
+                              ? 'border-black dark:border-white bg-black dark:bg-white text-white dark:text-black'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-500 dark:hover:border-neutral-500 bg-white dark:bg-neutral-900'
                             }`}
                         >
                           {/* IMAGE ICON */}
@@ -582,7 +584,7 @@ function PaymentContent() {
                             <Image src={m.icon} alt={m.name} fill className="object-contain rounded-lg" />
                           </div>
                           <span className="text-sm font-semibold">{m.name}</span>
-                          {selectedMethodId === m.id && <div className="absolute top-2 right-2 bg-black rounded-full p-1"><Check className="w-3 h-3 text-white" /></div>}
+                          {selectedMethodId === m.id && <div className="absolute top-2 right-2 bg-white dark:bg-black rounded-full p-1"><Check className="w-3 h-3 text-black dark:text-white" /></div>}
                         </button>
                       ))}
                     </div>
@@ -598,8 +600,8 @@ function PaymentContent() {
                           onClick={() => setSelectedMethodId(m.id)}
                           className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left
                                     ${selectedMethodId === m.id
-                              ? 'border-white bg-blue-50 dark:bg-white text-black'
-                              : 'border-neutral-200 dark:border-neutral-800 hover:border-white bg-white dark:bg-neutral-900'
+                              ? 'border-black dark:border-white bg-black dark:bg-white text-white dark:text-black'
+                              : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-500 dark:hover:border-neutral-500 bg-white dark:bg-neutral-900'
                             }`}
                         >
                           <div className="relative w-12 h-12 mb-1">
@@ -608,7 +610,7 @@ function PaymentContent() {
                           <div className="flex-1">
                             <p className="text-sm font-semibold">{m.name}</p>
                           </div>
-                          {selectedMethodId === m.id && <div className="bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-white" /> </div>}
+                          {selectedMethodId === m.id && <div className="bg-white dark:bg-black p-1 rounded-full flex items-center justify-center animate-scale-in"> <Check className="w-3 h-3 text-black dark:text-white" /> </div>}
                         </button>
                       ))}
                     </div>
@@ -627,7 +629,7 @@ function PaymentContent() {
                     </span>
                   </div>
 
-                  <div className="space-y-4 mb-6 pr-2 max-h-60 overflow-y-auto custom-scrollbar">
+                  <div className="space-y-4 mb-4 pr-2">
                     {order.detail_order?.map((item: any) => (
                       <div key={item.id_detail_order} className="flex justify-between text-sm">
                         <div className="flex-1">
@@ -652,7 +654,7 @@ function PaymentContent() {
                     <div className="border-t border-neutral-200 dark:border-neutral-700 my-2"></div>
                     <div className="flex justify-between items-end">
                       <span className="font-bold text-base">Total Bayar</span>
-                      <span className="font-bold text-lg text-white">Rp {priceDetails.total.toLocaleString('id-ID')}</span>
+                      <span className="font-bold text-lg">Rp {priceDetails.total.toLocaleString('id-ID')}</span>
                     </div>
                   </div>
 
@@ -660,12 +662,12 @@ function PaymentContent() {
                     <Button
                       onClick={handlePayment}
                       disabled={!selectedMethodId || processing}
-                      className="w-full py-4 text-base font-bold bg-white hover:bg-neutral-100 text-neutral-900"
+                      className="w-full py-4 text-base font-bold"
                     >
                       {processing ? 'Memproses...' : 'Bayar Sekarang'}
                     </Button>
 
-                    <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-400">
+                    <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
                       <ShieldCheck className="w-4 h-4" />
                       <span>Pembayaran Aman & Terenkripsi</span>
                     </div>

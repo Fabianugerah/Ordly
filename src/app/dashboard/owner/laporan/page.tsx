@@ -4,65 +4,72 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { FileText, Download, Calendar, Star } from 'lucide-react';
+import { Download, Star, DollarSign, ShoppingCart, Users, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+// Import Komponen Baru
+import DateRangePicker from '@/components/ui/DateRangePicker';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function OwnerLaporanPage() {
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 30))
-      .toISOString()
-      .split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
+  
+  // Menggunakan tipe Date object langsung untuk kompatibilitas dengan komponen baru
+  const [dateRange, setDateRange] = useState<{ startDate: Date | null; endDate: Date | null }>({
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)), // 30 hari lalu
+    endDate: new Date(), // Hari ini
   });
+  
   const [reportData, setReportData] = useState({
-    summary: {
-      totalRevenue: 0,
-      totalOrders: 0,
-      totalCustomers: 0,
-      avgOrderValue: 0,
-    },
+    summary: { totalRevenue: 0, totalOrders: 0, totalCustomers: 0, avgOrderValue: 0 },
     topMenu: [] as any[],
     revenueByCategory: [] as any[],
     monthlyComparison: [] as any[],
   });
 
   useEffect(() => {
-    fetchReportData();
+    // Pastikan kedua tanggal ada sebelum fetch
+    if (dateRange.startDate && dateRange.endDate) {
+      fetchReportData();
+    }
   }, [dateRange]);
 
   const fetchReportData = async () => {
     try {
       setLoading(true);
+      
+      // Konversi Date object ke string format YYYY-MM-DD untuk query database
+      // Tambahkan check null safety
+      if (!dateRange.startDate || !dateRange.endDate) return;
 
+      const startStr = new Intl.DateTimeFormat('en-CA').format(dateRange.startDate);
+      const endStr = new Intl.DateTimeFormat('en-CA').format(dateRange.endDate);
+
+      // --- LOGIKA FETCH DATA SAMA SEPERTI SEBELUMNYA ---
       // Fetch orders
       const { data: orders } = await supabase
         .from('order')
         .select('*')
-        .gte('tanggal', dateRange.startDate)
-        .lte('tanggal', dateRange.endDate)
+        .gte('tanggal', startStr)
+        .lte('tanggal', endStr)
         .eq('status_order', 'selesai');
 
       // Fetch transactions
       const { data: transaksi } = await supabase
         .from('transaksi')
         .select('*')
-        .gte('tanggal', dateRange.startDate)
-        .lte('tanggal', dateRange.endDate);
+        .gte('tanggal', startStr)
+        .lte('tanggal', endStr);
 
       // Fetch detail orders
       const { data: detailOrders } = await supabase
         .from('detail_order')
         .select('*, masakan(*), order!inner(tanggal, status_order)')
-        .gte('order.tanggal', dateRange.startDate)
-        .lte('order.tanggal', dateRange.endDate)
+        .gte('order.tanggal', startStr)
+        .lte('order.tanggal', endStr)
         .eq('order.status_order', 'selesai');
 
       // Calculate summary
-      const totalRevenue = transaksi?.reduce(
-        (sum, t) => sum + parseFloat(t.total_bayar.toString()),
-        0
-      ) || 0;
+      const totalRevenue = transaksi?.reduce((sum, t) => sum + parseFloat(t.total_bayar.toString()), 0) || 0;
       const totalOrders = orders?.length || 0;
       const totalCustomers = new Set(orders?.map((o) => o.id_user)).size;
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -72,11 +79,7 @@ export default function OwnerLaporanPage() {
       detailOrders?.forEach((detail) => {
         if (detail.id_masakan && detail.masakan) {
           if (!menuSales[detail.id_masakan]) {
-            menuSales[detail.id_masakan] = {
-              total: 0,
-              revenue: 0,
-              masakan: detail.masakan,
-            };
+            menuSales[detail.id_masakan] = { total: 0, revenue: 0, masakan: detail.masakan };
           }
           menuSales[detail.id_masakan].total += detail.jumlah;
           menuSales[detail.id_masakan].revenue += parseFloat(detail.subtotal.toString());
@@ -100,12 +103,7 @@ export default function OwnerLaporanPage() {
         .sort((a, b) => b.revenue - a.revenue);
 
       setReportData({
-        summary: {
-          totalRevenue,
-          totalOrders,
-          totalCustomers,
-          avgOrderValue,
-        },
+        summary: { totalRevenue, totalOrders, totalCustomers, avgOrderValue },
         topMenu,
         revenueByCategory,
         monthlyComparison: [],
@@ -117,178 +115,165 @@ export default function OwnerLaporanPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout allowedRoles={['owner']}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+  const COLORS = ['#F97316', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'];
+
+  // Helper Stat Card (Tetap sama)
+  const StatCard = ({ title, value, icon: Icon, bgClass }: any) => (
+    <Card className="relative overflow-hidden border border-neutral-100 dark:border-neutral-800">
+        <div className="flex items-start justify-between">
+            <div>
+                <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-1">{title}</p>
+                <h3 className="text-2xl font-bold text-neutral-900 dark:text-white">{value}</h3>
+            </div>
+            <div className={`p-3 rounded-xl ${bgClass}`}>
+                <Icon className="w-6 h-6" />
+            </div>
         </div>
-      </DashboardLayout>
-    );
-  }
+    </Card>
+  );
 
   return (
     <DashboardLayout allowedRoles={['owner']}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Laporan Bisnis</h1>
-            <p className="text-gray-600 mt-1">Laporan lengkap performa restoran</p>
+            <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Laporan Bisnis</h1>
+            <p className="text-neutral-600 dark:text-neutral-400 mt-1">Ringkasan performa restoran</p>
           </div>
-          <Button className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export PDF
+          <Button variant="outline" className="flex items-center gap-2">
+            <Download className="w-4 h-4" /> Export PDF
           </Button>
         </div>
 
-        <Card>
-          <div className="flex flex-col md:flex-row items-end gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Periode Laporan
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <span className="flex items-center">s/d</span>
-                <input
-                  type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
+        {/* Filter Section - Menggunakan Komponen DateRangePicker Baru */}
+        <Card className="p-4 bg-neutral-50 dark:bg-[#0a0a0a] border border-neutral-200 dark:border-neutral-800">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            
+            {/* Komponen Date Picker Kustom */}
+            <DateRangePicker 
+              startDate={dateRange.startDate}
+              endDate={dateRange.endDate}
+              onChange={(start, end) => setDateRange({ startDate: start, endDate: end })}
+            />
+
+            {/* Tombol Action (Opsional karena useEffect sudah auto-fetch) */}
+            <div className="flex gap-2">
+               <Button onClick={() => fetchReportData()} className="h-[42px] px-6">
+                  Refresh Data
+               </Button>
             </div>
-            <Button onClick={fetchReportData}>Generate Laporan</Button>
+
           </div>
         </Card>
 
-        {/* Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="text-center bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <p className="text-green-100 text-sm mb-1">Total Pendapatan</p>
-            <p className="text-3xl font-bold">
-              Rp {(reportData.summary.totalRevenue / 1000000).toFixed(1)}jt
-            </p>
-          </Card>
-          <Card className="text-center bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <p className="text-blue-100 text-sm mb-1">Total Pesanan</p>
-            <p className="text-3xl font-bold">{reportData.summary.totalOrders}</p>
-          </Card>
-          <Card className="text-center bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <p className="text-purple-100 text-sm mb-1">Total Pelanggan</p>
-            <p className="text-3xl font-bold">{reportData.summary.totalCustomers}</p>
-          </Card>
-          <Card className="text-center bg-gradient-to-br from-amber-500 to-amber-600 text-white">
-            <p className="text-amber-100 text-sm mb-1">Rata-rata Order</p>
-            <p className="text-2xl font-bold">
-              Rp {(reportData.summary.avgOrderValue / 1000).toFixed(0)}k
-            </p>
-          </Card>
-        </div>
+        {loading ? (
+           <div className="flex items-center justify-center h-64">
+             <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full"></div>
+           </div>
+        ) : (
+          <>
+            {/* Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard 
+                title="Total Pendapatan" 
+                value={`Rp ${(reportData.summary.totalRevenue / 1000000).toFixed(1)}jt`}
+                icon={DollarSign}
+                bgClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+              />
+              <StatCard 
+                title="Total Pesanan" 
+                value={reportData.summary.totalOrders}
+                icon={ShoppingCart}
+                bgClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+              />
+              <StatCard 
+                title="Total Pelanggan" 
+                value={reportData.summary.totalCustomers}
+                icon={Users}
+                bgClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+              />
+              <StatCard 
+                title="Rata-rata Order" 
+                value={`Rp ${(reportData.summary.avgOrderValue / 1000).toFixed(0)}k`}
+                icon={TrendingUp}
+                bgClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Menu */}
-          <Card title="Top 10 Menu Terlaris">
-            {reportData.topMenu.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Tidak ada data</p>
-            ) : (
-              <div className="space-y-2">
-                {reportData.topMenu.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800">
-                        {item.masakan?.nama_masakan}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {item.total} porsi • {item.masakan?.kategori}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-green-600">
-                        Rp {(item.revenue / 1000).toFixed(0)}k
-                      </p>
-                      {idx < 3 && (
-                        <Star className="w-4 h-4 text-amber-500 fill-current inline" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Revenue by Category */}
-          <Card title="Pendapatan per Kategori">
-            {reportData.revenueByCategory.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Tidak ada data</p>
-            ) : (
-              <div className="space-y-3">
-                {reportData.revenueByCategory.map((item, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-gray-700">{item.category}</span>
-                      <span className="font-bold text-gray-800">
-                        Rp {(item.revenue / 1000).toFixed(0)}k
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-primary to-blue-600 h-full flex items-center justify-end pr-2"
-                        style={{
-                          width: `${
-                            (item.revenue /
-                              Math.max(...reportData.revenueByCategory.map((c) => c.revenue))) *
-                            100
-                          }%`,
-                        }}
-                      >
-                        <span className="text-xs font-bold text-white">
-                          {((item.revenue / reportData.summary.totalRevenue) * 100).toFixed(1)}%
-                        </span>
+            {/* Charts & Details */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Top Menu List */}
+              <Card title="Top 10 Menu Terlaris">
+                {reportData.topMenu.length === 0 ? (
+                  <p className="text-center text-neutral-500 py-8">Tidak ada data pada periode ini</p>
+                ) : (
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                    {reportData.topMenu.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 rounded-lg transition-colors border border-transparent hover:border-neutral-100 dark:hover:border-neutral-800">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white ${idx < 3 ? 'bg-orange-500' : 'bg-neutral-400'}`}>
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-neutral-800 dark:text-white truncate">
+                            {item.masakan?.nama_masakan}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {item.total} porsi • {item.masakan?.kategori}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600 dark:text-green-400 text-sm">
+                            Rp {(item.revenue / 1000).toFixed(0)}k
+                          </p>
+                          {idx < 3 && (
+                            <div className="flex items-center justify-end gap-1 text-[10px] font-bold text-amber-500 uppercase">
+                                <Star className="w-3 h-3 fill-current" /> Top
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
+                )}
+              </Card>
 
-        {/* Summary Report */}
-        <Card title="Ringkasan Laporan">
-          <div className="prose max-w-none">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-3">📊 Performa Penjualan</h3>
-                <ul className="space-y-2 text-sm">
-                  <li>✅ Total pendapatan: Rp {reportData.summary.totalRevenue.toLocaleString('id-ID')}</li>
-                  <li>✅ Jumlah transaksi: {reportData.summary.totalOrders}</li>
-                  <li>✅ Rata-rata nilai order: Rp {reportData.summary.avgOrderValue.toLocaleString('id-ID')}</li>
-                  <li>✅ Total pelanggan unik: {reportData.summary.totalCustomers}</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-3">🏆 Menu Terpopuler</h3>
-                <ul className="space-y-2 text-sm">
-                  {reportData.topMenu.slice(0, 3).map((item, idx) => (
-                    <li key={idx}>
-                      #{idx + 1} {item.masakan?.nama_masakan} - {item.total} porsi terjual
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {/* Revenue by Category Chart */}
+              <Card title="Pendapatan per Kategori">
+                <div className="h-[350px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={reportData.revenueByCategory} layout="vertical" margin={{top: 5, right: 30, left: 20, bottom: 5}}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" opacity={0.5} />
+                            <XAxis type="number" hide />
+                            <YAxis 
+                                dataKey="category" 
+                                type="category" 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{fontSize: 12, fill: '#6B7280'}}
+                                width={80}
+                            />
+                            <Tooltip 
+                                cursor={{fill: 'transparent'}}
+                                contentStyle={{ backgroundColor: '#1F2937', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                formatter={(value: any) => [`Rp ${value.toLocaleString('id-ID')}`, 'Revenue']}
+                            />
+                            <Bar dataKey="revenue" radius={[0, 4, 4, 0]} barSize={30}>
+                                {reportData.revenueByCategory.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+              </Card>
+
             </div>
-          </div>
-        </Card>
+          </>
+        )}
+
       </div>
     </DashboardLayout>
   );

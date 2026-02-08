@@ -1,4 +1,4 @@
-// src/app/guest/menu/page.tsx
+// src/app/customer/menu/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

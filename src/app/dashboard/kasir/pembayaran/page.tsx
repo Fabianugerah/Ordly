@@ -1,22 +1,32 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react'; // 1. Import Suspense
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { CreditCard, Banknote, Smartphone, Search, CheckCircle, QrCode, Wallet, Building2, User } from 'lucide-react';
+import { 
+  CreditCard, 
+  Banknote, 
+  Smartphone, 
+  Search, 
+  CheckCircle, 
+  QrCode, 
+  User, 
+  Wallet 
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
-import { useRouter, useSearchParams } from 'next/navigation';
 
-// 2. Ubah nama function menjadi PembayaranContent (bukan default export)
+// --- KONTEN UTAMA HALAMAN ---
 function PembayaranContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAuthStore((state) => state.user);
   
   const [orders, setOrders] = useState<any[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -30,15 +40,30 @@ function PembayaranContent() {
 
   useEffect(() => {
     fetchOrders();
-    
-    const orderId = searchParams.get('order');
-    if (orderId) {
-      const order = orders.find((o) => o.id_order === parseInt(orderId));
-      if (order) {
-        handleSelectOrder(order);
+  }, []);
+
+  // Effect terpisah untuk handle search params setelah data orders tersedia
+  useEffect(() => {
+    if (orders.length > 0) {
+      const orderId = searchParams.get('order');
+      if (orderId) {
+        const order = orders.find((o) => o.id_order === parseInt(orderId));
+        if (order) {
+          handleSelectOrder(order);
+        }
       }
     }
-  }, [searchParams, orders]); // Tambahkan orders ke dependency agar saat data load, param dicek ulang
+  }, [searchParams, orders]);
+
+  // Effect untuk filter search
+  useEffect(() => {
+    const filtered = orders.filter(
+      (order) =>
+        order.id_order.toString().includes(search) ||
+        order.no_meja.toLowerCase().includes(search.toLowerCase())
+    );
+    setFilteredOrders(filtered);
+  }, [search, orders]);
 
   const fetchOrders = async () => {
     try {
@@ -50,15 +75,18 @@ function PembayaranContent() {
           users:id_user(nama_user),
           detail_order(*, masakan(*))
         `)
-        .in('status_order', ['selesai', 'proses'])
+        .in('status_order', ['selesai', 'proses']) // Ambil yang siap bayar
         .order('created_at', { ascending: false });
 
+      // Cek mana yang SUDAH dibayar (ada di tabel transaksi)
       const { data: transaksiData } = await supabase.from('transaksi').select('id_order');
-
       const paidOrderIds = new Set(transaksiData?.map((t) => t.id_order) || []);
+      
+      // Filter hanya yang BELUM dibayar
       const unpaidOrders = allOrders?.filter((o) => !paidOrderIds.has(o.id_order)) || [];
 
       setOrders(unpaidOrders);
+      setFilteredOrders(unpaidOrders); // Inisialisasi filtered
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -97,7 +125,7 @@ function PembayaranContent() {
 
     try {
       const transaksiData = {
-        id_user: user?.id_user,
+        id_user: user?.id_user, // Kasir yang memproses
         id_order: selectedOrder.id_order,
         tanggal: new Date().toISOString().split('T')[0],
         total_bayar: totalHarga,
@@ -110,6 +138,7 @@ function PembayaranContent() {
 
       if (error) throw error;
 
+      // Update status order jadi selesai (jika belum)
       await supabase
         .from('order')
         .update({ status_order: 'selesai' })
@@ -118,8 +147,8 @@ function PembayaranContent() {
       alert('Pembayaran berhasil diproses!');
       setShowPaymentModal(false);
       setSelectedOrder(null);
-      fetchOrders();
-      router.push('/dashboard/kasir/transaksi');
+      fetchOrders(); // Refresh list
+      router.push('/dashboard/kasir/transaksi'); // Redirect ke riwayat
     } catch (error: any) {
       console.error('Error processing payment:', error);
       alert('Error: ' + error.message);
@@ -127,12 +156,6 @@ function PembayaranContent() {
       setProcessing(false);
     }
   };
-
-  const filteredOrders = orders.filter(
-    (order) =>
-      order.id_order.toString().includes(search) ||
-      order.no_meja.toLowerCase().includes(search.toLowerCase())
-  );
 
   const paymentMethods = [
     {
@@ -211,9 +234,9 @@ function PembayaranContent() {
               <div 
                 key={order.id_order} 
                 onClick={() => handleSelectOrder(order)} 
-                className="cursor-pointer"
+                className="cursor-pointer h-full"
               >
-                <Card className="hover:shadow-lg transition-shadow group h-full">
+                <Card className="hover:shadow-lg transition-shadow group h-full flex flex-col justify-between border border-neutral-200 dark:border-neutral-800">
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
@@ -224,7 +247,7 @@ function PembayaranContent() {
                           <span className="px-2.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-medium rounded-md border border-neutral-200 dark:border-neutral-700">
                             Meja {order.no_meja}
                           </span>
-                          <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-md border border-blue-100 dark:border-blue-800">
+                          <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-md border border-blue-100 dark:border-blue-800 uppercase">
                             {order.status_order}
                           </span>
                         </div>
@@ -255,11 +278,11 @@ function PembayaranContent() {
                         Rp {parseFloat(order.total_harga).toLocaleString('id-ID')}
                       </span>
                     </div>
-                    
-                    <Button className="w-full mt-2">
-                      Proses Pembayaran
-                    </Button>
                   </div>
+                  
+                  <Button className="w-full mt-4">
+                    Proses Pembayaran
+                  </Button>
                 </Card>
               </div>
             ))}
@@ -278,6 +301,7 @@ function PembayaranContent() {
           {selectedOrder && (
             <div className="space-y-6">
               
+              {/* Card Total Harga */}
               <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
                 <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-black opacity-10 rounded-full blur-xl"></div>
@@ -290,14 +314,14 @@ function PembayaranContent() {
                 </div>
                 
                 <div className="relative z-10 mt-6 grid grid-cols-2 gap-4 pt-4 border-t border-white/20">
-                   <div className="text-center">
+                    <div className="text-center">
                       <p className="text-orange-100 text-xs uppercase tracking-wider">Meja</p>
                       <p className="font-semibold text-lg">{selectedOrder.no_meja}</p>
-                   </div>
-                   <div className="text-center border-l border-white/20">
+                    </div>
+                    <div className="text-center border-l border-white/20">
                       <p className="text-orange-100 text-xs uppercase tracking-wider">Items</p>
                       <p className="font-semibold text-lg">{selectedOrder.detail_order?.length} Menu</p>
-                   </div>
+                    </div>
                 </div>
               </div>
 
@@ -405,7 +429,7 @@ function PembayaranContent() {
   );
 }
 
-// 3. Export Default Baru (Suspense Wrapper)
+// --- DEFAULT EXPORT WITH SUSPENSE ---
 export default function KasirPembayaranPage() {
   return (
     <Suspense fallback={

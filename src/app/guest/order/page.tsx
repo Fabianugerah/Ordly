@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
-import { ShoppingCart, Plus, Minus, ArrowLeft, Users, Check, AlertCircle, RefreshCw, Utensils, X, User, ShoppingBag, Clock, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Users, Check, AlertCircle, RefreshCw, Utensils, X, User, ShoppingBag, Clock, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import Navbar from '@/components/layout/NavbarCustomer';
 import Footer from '@/components/layout/FooterCustomer';
@@ -22,8 +22,7 @@ interface Table {
 
 export default function CustomerOrderPage() {
   const router = useRouter();
-  // Ambil customerName dan setCustomerName dari store
-  const { items, updateQuantity, removeItem, clearCart, getTotalPrice, customerName, setCustomerName } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotalPrice, customerName, setCustomerName } = useCartStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTable, setSelectedTable] = useState<string>('');
@@ -86,10 +85,9 @@ export default function CustomerOrderPage() {
   };
 
   const handleSubmitOrder = async () => {
-    // Validasi Nama
     if (!customerName.trim()) {
       setError('Mohon masukkan Nama Anda terlebih dahulu!');
-      window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll ke atas
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -121,7 +119,7 @@ export default function CustomerOrderPage() {
 
       const orderData = {
         no_meja: selectedTable.trim(),
-        nama_pelanggan: customerName.trim(), // <--- KIRIM NAMA KE DB
+        nama_pelanggan: customerName.trim(),
         tanggal: new Date().toISOString().split('T')[0],
         keterangan: keterangan.trim() || null,
         status_order: 'pending',
@@ -156,12 +154,6 @@ export default function CustomerOrderPage() {
         throw new Error(detailError.message);
       }
 
-      // Jangan clearCart() disini, biarkan payment page yang menghandle atau clear setelah bayar
-      // Tapi karena logic sebelumnya clearCart(), kita ikuti flow yang ada namun simpan nama di state
-
-      // clearCart(); <--- Hapus ini agar nama & item tetap ada jika user back (opsional)
-      // Tapi flow Anda sebelumnya clearCart(), jadi pastikan nama tersimpan di DB.
-
       router.push(`/guest/payment?order=${order.id_order}`);
 
     } catch (error: any) {
@@ -172,30 +164,38 @@ export default function CustomerOrderPage() {
     }
   };
 
+  // Logic Style Meja (Updated for Light Mode)
   const getTableStyle = (status: string, isSelected: boolean) => {
-    if (isSelected) return 'bg-white text-black border-white shadow-lg scale-105';
-    if (status === 'terisi') return 'bg-neutral-200 dark:bg-neutral-600 text-neutral-500 border-none cursor-not-allowed';
-    return 'bg-transparent hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-500 hover:shadow-md cursor-pointer';
+    // Selected: Gelap solid di light mode, Putih solid di dark mode
+    if (isSelected) return 'bg-neutral-900 text-white border-neutral-900 shadow-lg scale-105 dark:bg-white dark:text-black dark:border-white';
+    
+    // Occupied: Abu-abu muda di light, Abu-abu tua di dark
+    if (status === 'terisi') return 'bg-neutral-100 text-neutral-400 border-none cursor-not-allowed dark:bg-neutral-600 dark:text-neutral-500';
+    
+    // Available: Putih/Outline di light, Transparan di dark
+    return 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 hover:shadow-md cursor-pointer dark:bg-transparent dark:text-neutral-300 dark:border-neutral-800 dark:hover:bg-neutral-800 dark:hover:border-neutral-500';
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col">
+    // Background utama: Abu sangat muda (neutral-50) untuk light mode, Hitam (neutral-950) untuk dark mode
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col transition-colors duration-300">
       <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
       <main className="flex-1 px-4 md:px-8 py-8 space-y-8">
         <div className="max-w-7xl mx-auto">
 
+          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8">
             <div className="flex flex-col gap-2">
               <div className="flex items-center text-center gap-2 text-sm text-neutral-500">
-                <Link href="/guest/menu" className="hover:text-white transition-colors flex items-center gap-1">
+                <Link href="/guest/menu" className="hover:text-neutral-900 dark:hover:text-white transition-colors flex items-center gap-1">
                   Menu
                 </Link>
                 <ChevronRight className="w-3 h-3" />
-                <span className="text-white font-medium">Order</span>
+                <span className="text-neutral-900 dark:text-white font-medium">Order</span>
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-white">Checkout</h1>
+                <h1 className="text-4xl font-bold text-neutral-900 dark:text-white">Checkout</h1>
                 <p className="text-neutral-500 mt-1">Lengkapi data pemesan & pilih meja</p>
               </div>
             </div>
@@ -208,10 +208,11 @@ export default function CustomerOrderPage() {
             <PaymentSteps currentStep={1} />
           </div>
 
+          {/* Error Message */}
           {error && (
-            <div className="flex flex-row gap-2 items-center bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6">
-              <AlertCircle className="text-red-400" />
-              <p className="text-red-400 text-sm font-semibold">{error}</p>
+            <div className="flex flex-row gap-2 items-center bg-red-50 border border-red-200 text-red-600 rounded-lg p-4 mb-6 dark:bg-red-500/10 dark:border-red-500/50 dark:text-red-400">
+              <AlertCircle className="w-5 h-5" />
+              <p className="text-sm font-semibold">{error}</p>
             </div>
           )}
 
@@ -221,17 +222,19 @@ export default function CustomerOrderPage() {
               {/* Card Data Pemesan & Meja */}
               <Card>
                 <div className="mb-6">
-                  <div className="flex items-center gap-3 mb-4 border-b border-neutral-200 dark:border-neutral-800 pb-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-neutral-600/30 flex items-center justify-center text-neutral-500">
+                  <div className="flex items-center gap-3 mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-4">
+                    <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400">
                       <User className="w-5 h-5" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-neutral-800 dark:text-white">Data Pemesan</h2>
-                      <p className="text-sm text-neutral-400">Isi data pemesan sebelum melanjutkan</p>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">Isi data pemesan sebelum melanjutkan</p>
                     </div>
                   </div>
+                  
+                  {/* Input Nama */}
                   <div className="mt-6">
-                    <label className="block text-sm font-medium dark:text-white mb-2">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-2">
                       Nama Pelanggan <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -239,33 +242,37 @@ export default function CustomerOrderPage() {
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       placeholder="Masukkan nama Anda..."
-                      className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-neutral-500 text-neutral-900 dark:text-white placeholder:text-neutral-400"
+                      className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-neutral-500 text-neutral-900 placeholder:text-neutral-400 dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:focus:ring-1"
                     />
                   </div>
 
-                  {/* PILIHAN TIPE PESANAN (BARU) */}
+                  {/* Pilihan Tipe Pesanan */}
                   <div className="mt-6">
-                    <label className="block text-sm font-medium dark:text-white mb-3">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-white mb-3">
                       Tipe Pesanan <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-4">
+                      {/* Tombol Dine In */}
                       <button
                         onClick={() => setOrderType('dine_in')}
-                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${orderType === 'dine_in'
-                            ? 'border-white bg-white text-black'
-                            : 'border-neutral-800 text-neutral-500 hover:border-neutral-500 hover:bg-neutral-800'
-                          }`}
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${
+                          orderType === 'dine_in'
+                            ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-black shadow-md'
+                            : 'border-neutral-200 text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 dark:border-neutral-800 dark:hover:bg-neutral-800 dark:hover:border-neutral-500'
+                        }`}
                       >
                         <Utensils className="w-6 h-6" />
                         <span className="font-bold text-sm">Dine In</span>
                       </button>
 
+                      {/* Tombol Take Away */}
                       <button
                         onClick={() => setOrderType('take_away')}
-                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${orderType === 'take_away'
-                            ? 'border-white bg-white text-black'
-                            : 'border-neutral-800 text-neutral-500 hover:border-neutral-500 hover:bg-neutral-800'
-                          }`}
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all duration-300 ${
+                          orderType === 'take_away'
+                            ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-black shadow-md'
+                            : 'border-neutral-200 text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 dark:border-neutral-800 dark:hover:bg-neutral-800 dark:hover:border-neutral-500'
+                        }`}
                       >
                         <ShoppingBag className="w-6 h-6" />
                         <span className="font-bold text-sm">Take Away</span>
@@ -279,13 +286,15 @@ export default function CustomerOrderPage() {
                   <>
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="text-sm font-bold text-neutral-800 dark:text-white">Pilih Nomor Meja <span className="text-red-500">*</span></h2>
-                      <button onClick={fetchTables} disabled={loadingTables} className="p-2 hover:bg-neutral-800 rounded-lg">
-                        <RefreshCw className={`w-5 h-5 text-neutral-400 ${loadingTables ? 'animate-spin' : ''}`} />
+                      <button onClick={fetchTables} disabled={loadingTables} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
+                        <RefreshCw className={`w-5 h-5 text-neutral-500 dark:text-neutral-400 ${loadingTables ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
 
                     {loadingTables ? (
-                      <div className="flex justify-center py-12"><div className="animate-spin w-8 h-8 border-4 border-neutral-500 border-t-transparent rounded-full"></div></div>
+                      <div className="flex justify-center py-12">
+                        <div className="animate-spin w-8 h-8 border-4 border-neutral-300 border-t-neutral-800 dark:border-neutral-500 dark:border-t-transparent rounded-full"></div>
+                      </div>
                     ) : (
                       <>
                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-4">
@@ -294,31 +303,30 @@ export default function CustomerOrderPage() {
                               key={table.no_meja}
                               onClick={() => table.status === 'tersedia' && setSelectedTable(table.no_meja)}
                               disabled={table.status !== 'tersedia'}
-                              className={`relative aspect-square rounded-xl border border-neutral-800 transition-all duration-200 flex flex-col items-center justify-center ${getTableStyle(table.status, selectedTable === table.no_meja)}`}
+                              className={`relative aspect-square rounded-xl border transition-all duration-200 flex flex-col items-center justify-center ${getTableStyle(table.status, selectedTable === table.no_meja)}`}
                             >
-                              {selectedTable === table.no_meja && <div className="absolute top-1 right-1 bg-black rounded-full p-1"><Check className="w-3 h-3 text-white" /></div>}
+                              {selectedTable === table.no_meja && (
+                                <div className="absolute top-1 right-1 bg-white dark:bg-black rounded-full p-1 shadow-sm">
+                                  <Check className="w-3 h-3 text-neutral-900 dark:text-white" />
+                                </div>
+                              )}
                               <Users className="w-6 h-6 mb-1 opacity-80" />
                               <span className="text-lg font-bold">{table.no_meja}</span>
                               <span className="text-[10px] opacity-75">{table.kapasitas} orang</span>
                             </button>
                           ))}
                         </div>
-                        {selectedTable && (
-                          <div className="flex gap-2 p-3 items-center bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm font-base">
-                            <div className="border border-green-400 rounded-full p-1"><Check className="w-3 h-3 text-green-400" /></div>
-                            <p>Meja #{selectedTable} Dipilih</p>
-                          </div>
-                        )}
+                        
                       </>
                     )}
                   </>
                 ) : (
                   /* TAMPILAN JIKA TAKE AWAY */
-                  <div className="mt-4 flex flex-col items-center justify-center py-8 border border-dashed border-neutral-800 rounded-xl bg-neutral-900/30">
-                    <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center mb-3">
-                      <Clock className="w-6 h-6 text-neutral-400" />
+                  <div className="mt-4 flex flex-col items-center justify-center py-8 border border-dashed border-neutral-300 bg-neutral-50 rounded-xl dark:border-neutral-800 dark:bg-neutral-900/30">
+                    <div className="w-12 h-12 bg-neutral-200 rounded-full flex items-center justify-center mb-3 dark:bg-neutral-800">
+                      <Clock className="w-6 h-6 text-neutral-600 dark:text-neutral-400" />
                     </div>
-                    <h3 className="text-md font-bold text-white">Pesanan Take Away</h3>
+                    <h3 className="text-md font-bold text-neutral-900 dark:text-white">Pesanan Take Away</h3>
                     <p className="text-neutral-500 text-xs text-center max-w-[250px] mt-1">
                       Mohon tunggu di area antrian setelah pembayaran selesai.
                     </p>
@@ -330,8 +338,8 @@ export default function CustomerOrderPage() {
               <Card title={`Keranjang Belanja (${items.length} item)`}>
                 {items.length === 0 ? (
                   <div className="text-center py-12">
-                    <ShoppingCart className="w-16 h-16 text-neutral-500 mx-auto mb-4" />
-                    <p className="text-white mb-2">Keranjang Anda masih kosong</p>
+                    <ShoppingCart className="w-16 h-16 text-neutral-300 mx-auto mb-4 dark:text-neutral-500" />
+                    <p className="text-neutral-900 dark:text-white mb-2 font-medium">Keranjang Anda masih kosong</p>
                     <p className="text-sm text-neutral-500 mb-4">
                       Silakan tambah menu dari daftar menu
                     </p>
@@ -344,9 +352,9 @@ export default function CustomerOrderPage() {
                     {items.map((item) => (
                       <div
                         key={item.id_masakan}
-                        className="flex items-start gap-4 p-4 border-b border-neutral-800 hover:shadow-md transition-shadow"
+                        className="flex items-start gap-4 p-4 border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
                       >
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-2xl">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden">
                           {item.gambar ? (
                             <img
                               src={item.gambar}
@@ -354,33 +362,33 @@ export default function CustomerOrderPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
-                              <Utensils className="w-12 h-12 text-neutral-300" />
+                            <div className="w-full h-full bg-neutral-100 flex items-center justify-center dark:bg-neutral-800">
+                              <Utensils className="w-8 h-8 text-neutral-300 dark:text-neutral-600" />
                             </div>
                           )}
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-white text-lg">
+                          <h3 className="font-bold text-neutral-900 dark:text-white text-lg">
                             {item.nama_masakan}
                           </h3>
-                          <p className="text-sm text-neutral-400 mb-4">
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
                             Rp {parseFloat(item.harga.toString()).toLocaleString('id-ID')}
                           </p>
                           <div className="flex items-center">
-                            <div className="flex bg-transparent border border-neutral-800 rounded-xl p-1">
+                            <div className="flex items-center bg-white border border-neutral-200 rounded-lg p-1 dark:bg-transparent dark:border-neutral-800">
                               <button
-                                className="p-1 hover:bg-neutral-800 rounded-lg transition-colors text-white"
+                                className="p-1 hover:bg-neutral-100 rounded-md transition-colors text-neutral-600 dark:text-white dark:hover:bg-neutral-700"
                                 onClick={() => updateQuantity(item.id_masakan, item.jumlah - 1)}
                                 disabled={loading}
                               >
                                 <Minus className="w-4 h-4" />
                               </button>
-                              <span className="w-12 text-center font-bold text-lg text-white">
+                              <span className="w-10 text-center font-bold text-sm text-neutral-900 dark:text-white">
                                 {item.jumlah}
                               </span>
                               <button
-                                className="p-1 hover:bg-neutral-800 rounded-lg transition-colors text-white"
+                                className="p-1 hover:bg-neutral-100 rounded-md transition-colors text-neutral-600 dark:text-white dark:hover:bg-neutral-700"
                                 onClick={() => updateQuantity(item.id_masakan, item.jumlah + 1)}
                                 disabled={loading}
                               >
@@ -390,15 +398,15 @@ export default function CustomerOrderPage() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end">
+                        <div className="flex flex-col items-end justify-between h-24">
                           <button
                             onClick={() => removeItem(item.id_masakan)}
                             disabled={loading}
-                            className="text-neutral-400 p-2 hover:bg-neutral-800 rounded-lg transition-colors mb-8"
+                            className="text-neutral-400 p-2 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors dark:hover:bg-neutral-800"
                           >
                             <X className="w-5 h-5" />
                           </button>
-                          <p className="font-bold text-white text-lg">
+                          <p className="font-bold text-neutral-900 dark:text-white text-lg">
                             Rp {(item.harga * item.jumlah).toLocaleString('id-ID')}
                           </p>
                         </div>
@@ -415,32 +423,34 @@ export default function CustomerOrderPage() {
               <Card title="Ringkasan">
                 <div className="space-y-4">
                   {/* Tampilkan Nama di Ringkasan */}
-                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-2">
+                  <div className="p-4 bg-white rounded-xl border border-neutral-200 space-y-2 dark:bg-neutral-900 dark:border-neutral-800">
                     <div className="flex justify-between text-sm">
-                      <span className="text-neutral-400">Nama Pelanggan</span>
-                      <span className="text-white text-base font-bold">{customerName || '-'}</span>
+                      <span className="text-neutral-500 dark:text-neutral-400">Nama Pelanggan</span>
+                      <span className="text-neutral-900 dark:text-white text-base font-bold">{customerName || '-'}</span>
                     </div>
                     <div className="flex justify-between text-sm items-center">
-                      <span className="text-neutral-400">Meja</span>
-                      <div className="border border-neutral-700 rounded-lg px-2 py-1 bg-neutral-800 text-sm">
-                        <span className="text-white font-bold">{selectedTable ? `#${selectedTable}` : '-'}</span>
+                      <span className="text-neutral-500 dark:text-neutral-400">Tipe / Meja</span>
+                      <div className="border border-neutral-200 rounded-lg px-2 py-1 bg-neutral-50 text-sm dark:bg-neutral-800 dark:border-neutral-700">
+                        <span className="text-neutral-900 dark:text-white font-bold">
+                            {orderType === 'take_away' ? 'Take Away' : selectedTable ? `#${selectedTable}` : '-'}
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm text-neutral-400 mb-2 block">Catatan (Opsional)</label>
+                    <label className="text-sm text-neutral-600 dark:text-neutral-400 mb-2 block">Catatan (Opsional)</label>
                     <textarea
                       value={keterangan}
                       onChange={(e) => setKeterangan(e.target.value)}
-                      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-sm text-white focus:ring-1 focus:ring-neutral-500 focus:outline-none"
+                      className="w-full bg-white border border-neutral-200 rounded-lg p-3 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-500 focus:outline-none dark:bg-neutral-900 dark:border-neutral-800 dark:text-white dark:focus:ring-1"
                       rows={6}
                       placeholder="Contoh: Jangan terlalu pedas..."
                     />
                   </div>
 
-                  <div className="border-t border-neutral-800 pt-4 space-y-2">
-                    <div className="flex justify-between text-white font-bold text-lg">
+                  <div className="border-t border-neutral-200 dark:border-neutral-800 pt-4 space-y-2">
+                    <div className="flex justify-between text-neutral-900 dark:text-white font-bold text-lg">
                       <span className="font-semibold">Total</span>
                       <span>Rp {getTotalPrice().toLocaleString('id-ID')}</span>
                     </div>

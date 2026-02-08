@@ -15,9 +15,6 @@ import {
   FileText,
   Settings,
   TrendingUp,
-  BarChart3,
-  Folder,
-  FolderOpen,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,7 +27,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const router = useRouter();
-  const role = user?.level?.nama_level;
+  const role = user?.level?.nama_level as keyof typeof mainMenuItems;
   const [projectsExpanded, setProjectsExpanded] = useState(true);
 
   const handleLogout = async () => {
@@ -45,7 +42,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   };
 
-  // Role to URL mapping (untuk role yang berbeda dengan URL path)
   const roleToUrlMap: { [key: string]: string } = {
     administrator: 'admin',
     waiter: 'waiter',
@@ -54,12 +50,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     customer: 'customer',
   };
 
-  // Get the correct URL path based on role
   const getRoleUrl = () => {
     return role ? roleToUrlMap[role] || role : '';
   };
 
-  // Main menu items based on role
   const mainMenuItems = {
     administrator: [
       { href: '/dashboard/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -89,37 +83,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     ],
   };
 
-  // Projects menu (Laporan section)
   const projectItems = {
-    administrator: [
-      { href: '/dashboard/admin/laporan', icon: FileText, label: 'Laporan Restoran' },
-    ],
-    waiter: [
-      { href: '/dashboard/waiter/laporan', icon: FileText, label: 'Laporan Saya' },
-    ],
-    kasir: [
-      { href: '/dashboard/kasir/laporan', icon: FileText, label: 'Laporan Saya' },
-    ],
-    owner: [
-      { href: '/dashboard/owner/laporan', icon: FileText, label: 'Laporan Bisnis' },
-    ],
+    administrator: [{ href: '/dashboard/admin/laporan', icon: FileText, label: 'Laporan Restoran' }],
+    waiter: [{ href: '/dashboard/waiter/laporan', icon: FileText, label: 'Laporan Saya' }],
+    kasir: [{ href: '/dashboard/kasir/laporan', icon: FileText, label: 'Laporan Saya' }],
+    owner: [{ href: '/dashboard/owner/laporan', icon: FileText, label: 'Laporan Bisnis' }],
     customer: [],
   };
 
   const currentMainMenu = role ? mainMenuItems[role] || [] : [];
-  const currentProjects = role ? projectItems[role] || [] : [];
+  const currentProjects = role ? (projectItems as any)[role] || [] : [];
 
   return (
     <>
-      {/* Overlay for mobile */}
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={onClose} />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 
           bg-white dark:bg-neutral-900
@@ -133,7 +113,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             {/* MAIN MENU Section */}
             <div className="px-4 pt-6 pb-4">
               <div className="flex items-center justify-between mb-3 px-2">
-                <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                <h3 className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
                   Main Menu
                 </h3>
               </div>
@@ -147,36 +127,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       key={item.href}
                       href={item.href}
                       onClick={onClose}
-                      className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${isActive
-                        ? 'bg-gradient-to-b from-neutral-300/10 via-neutral-300/5 to-neutral-800/20 text-white shadow-lg shadow-black/10'
-                        : 'text-neutral-600 hover:text-white hover:bg-neutral-800/50'
-                        }`}
+                      className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? 'bg-neutral-900 dark:bg-gradient-to-b dark:from-neutral-300/10 dark:via-neutral-300/5 dark:to-neutral-800/20 text-white shadow-lg shadow-black/10'
+                          : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800/50'
+                      }`}
                     >
-                      {/* 1. Neon Indicator Bar (Samping luar) */}
                       {isActive && (
                         <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 shadow-[0_0_15px_#F97316] rounded-r-full" />
                       )}
 
-                      {/* 2. Inner Left Glow (Pantulan cahaya di dalam menu) */}
                       {isActive && (
-                        <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0  rounded-l-xl pointer-events-none" />
+                        <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0 rounded-l-xl pointer-events-none" />
                       )}
 
-                      {/* 3. Icon */}
                       <Icon className="w-5 h-5 transition-transform duration-200" />
-
-                      {/* 4. Label */}
-                      <span className={`relative z-10 font-semibold text-[14px] transition-colors duration-300 ${isActive ? 'text-white' : 'text-neutral-600 group-hover:text-white'
-                        }`}>
+                      <span className={`relative z-10 font-semibold text-[14px] transition-colors duration-300`}>
                         {item.label}
                       </span>
 
-                      {isActive && (
-                        <ChevronRight className="w-5 h-5 ml-auto text-white" />
-                      )}
-                      {isActive && (
-                        <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />
-                      )}
+                      {isActive && <ChevronRight className="w-5 h-5 ml-auto text-white" />}
+                      {isActive && <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />}
                     </Link>
                   );
                 })}
@@ -185,61 +156,38 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             {/* PROJECTS Section (Laporan) */}
             {currentProjects.length > 0 && (
-              <div className="px-4 py-4 border-t border-neutral-800/50">
+              <div className="px-4 py-4 border-t border-neutral-100 dark:border-neutral-800/50">
                 <div className="flex items-center justify-between mb-3 px-2">
-                  <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
                     Laporan
                   </h3>
-                  <button
-                    onClick={() => setProjectsExpanded(!projectsExpanded)}
-                    className="text-neutral-400 hover:text-white transition-colors"
-                  >
-                    <Plus className={`w-4 h-4 transition-transform duration-200 ${projectsExpanded ? 'rotate-45' : ''
-                      }`} />
+                  <button onClick={() => setProjectsExpanded(!projectsExpanded)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors">
+                    <Plus className={`w-4 h-4 transition-transform duration-200 ${projectsExpanded ? 'rotate-45' : ''}`} />
                   </button>
                 </div>
 
                 {projectsExpanded && (
                   <nav className="space-y-1">
-                    {currentProjects.map((item) => {
+                    {currentProjects.map((item: any) => {
                       const Icon = item.icon;
                       const isActive = pathname === item.href;
-
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           onClick={onClose}
-                          className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${isActive
-                            ? 'bg-gradient-to-b from-neutral-300/10 via-neutral-300/5 to-neutral-800/20 text-white shadow-lg shadow-black/10'
-                            : 'text-neutral-600 hover:text-white hover:bg-neutral-800/50'
-                            }`}
+                          className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
+                            isActive
+                              ? 'bg-neutral-900 dark:bg-gradient-to-b dark:from-neutral-300/10 dark:via-neutral-300/5 dark:to-neutral-800/20 text-white shadow-lg shadow-black/10'
+                              : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800/50'
+                          }`}
                         >
-                          {/* 1. Neon Indicator Bar (Samping luar) */}
-                          {isActive && (
-                            <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 shadow-[0_0_15px_#F97316] rounded-r-full" />
-                          )}
-
-                          {/* 2. Inner Left Glow (Pantulan cahaya di dalam menu) */}
-                          {isActive && (
-                            <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0  rounded-l-xl pointer-events-none" />
-                          )}
-
-                          {/* 3. Icon */}
+                          {isActive && <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 shadow-[0_0_15px_#F97316] rounded-r-full" />}
+                          {isActive && <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0 rounded-l-xl pointer-events-none" />}
                           <Icon className="w-5 h-5 transition-transform duration-200" />
-
-                          {/* 4. Label */}
-                          <span className={`relative z-10 font-semibold text-[14px] transition-colors duration-300 ${isActive ? 'text-white' : 'text-neutral-600 group-hover:text-white'
-                            }`}>
-                            {item.label}
-                          </span>
-
-                          {isActive && (
-                            <ChevronRight className="w-5 h-5 ml-auto text-white" />
-                          )}
-                          {isActive && (
-                            <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />
-                          )}
+                          <span className="relative z-10 font-semibold text-[14px]">{item.label}</span>
+                          {isActive && <ChevronRight className="w-5 h-5 ml-auto text-white" />}
+                          {isActive && <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />}
                         </Link>
                       );
                     })}
@@ -249,7 +197,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
 
             {/* Settings Section */}
-            <div className="px-4 py-4 border-t border-neutral-800/50">
+            <div className="px-4 py-4 border-t border-neutral-100 dark:border-neutral-800/50">
               {(() => {
                 const roleUrl = getRoleUrl();
                 const settingsUrl = `/dashboard/${roleUrl}/settings`;
@@ -259,56 +207,31 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <Link
                     href={settingsUrl}
                     onClick={onClose}
-                    className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${isActive
-                        ? 'bg-gradient-to-b from-neutral-300/10 via-neutral-300/5 to-neutral-800/20 text-white shadow-lg shadow-black/10'
-                        : 'text-neutral-600 hover:text-white hover:bg-neutral-800/50'
-                      }`}
+                    className={`group relative flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-neutral-900 dark:bg-gradient-to-b dark:from-neutral-300/10 dark:via-neutral-300/5 dark:to-neutral-800/20 text-white shadow-lg shadow-black/10'
+                        : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800/50'
+                    }`}
                   >
-                    {/* 1. Neon Indicator Bar */}
-                    {isActive && (
-                      <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 shadow-[0_0_15px_#F97316] rounded-r-full" />
-                    )}
-
-                    {/* 2. Inner Left Glow */}
-                    {isActive && (
-                      <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0 rounded-l-xl pointer-events-none" />
-                    )}
-
-                    {/* 3. Icon */}
+                    {isActive && <div className="absolute left-[-16px] top-1/2 -translate-y-1/2 w-1 h-6 bg-orange-500 shadow-[0_0_15px_#F97316] rounded-r-full" />}
+                    {isActive && <div className="absolute left-0 top-0 bottom-0 w-12 border-l-2 border-orange-500/60 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-orange-500/0 rounded-l-xl pointer-events-none" />}
                     <Settings className="w-5 h-5 transition-transform duration-200" />
-
-                    {/* 4. Label */}
-                    <span
-                      className={`relative z-10 font-semibold text-[14px] transition-colors duration-300 ${isActive ? 'text-white' : 'text-neutral-600 group-hover:text-white'
-                        }`}
-                    >
-                      Pengaturan
-                    </span>
-
-                    {/* 5. Chevron */}
-                    {isActive && (
-                      <ChevronRight className="w-5 h-5 ml-auto text-white" />
-                    )}
-
-                    {/* 6. Subtle top border */}
-                    {isActive && (
-                      <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />
-                    )}
+                    <span className="relative z-10 font-semibold text-[14px]">Pengaturan</span>
+                    {isActive && <ChevronRight className="w-5 h-5 ml-auto text-white" />}
+                    {isActive && <div className="absolute inset-0 border-t border-white/5 rounded-xl pointer-events-none" />}
                   </Link>
                 );
               })()}
             </div>
-
           </div>
 
           {/* Logout */}
-          <div className="p-4 border-t border-neutral-800/50 bg-neutral-900/50 backdrop-blur-sm">
-            {/* Logout Button */}
+          <div className="p-4 border-t border-neutral-100 dark:border-neutral-800/50 bg-neutral-50 dark:bg-neutral-900/50 backdrop-blur-sm">
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl
-                text-red-400 hover:text-white hover:bg-red-500/10 
-                border border-red-500/20 hover:border-red-500/40
+                text-red-600 dark:text-red-400 hover:text-white hover:bg-red-500 
+                border border-red-200 dark:border-red-500/20 hover:border-red-500
                 transition-all duration-200 group"
             >
               <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -8,9 +8,11 @@ import Modal from '@/components/ui/Modal';
 import Select from '@/components/ui/Select';
 import {
   ShoppingCart, Search, Eye, Edit, Clock, CheckCircle, XCircle, RefreshCw,
-  Calendar, ChevronLeft, ChevronRight, MoreVertical, Trash2
+  MoreVertical, Users, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+// Import komponen baru
+import SingleDatePicker from '@/components/ui/SingleDatePicker';
 
 // Opsi Filter Status untuk Dropdown
 const STATUS_OPTIONS = [
@@ -29,27 +31,19 @@ export default function AdminOrdersPage() {
 
   // --- PAGINATION STATE ---
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Menampilkan 7 item per halaman agar rapi
+  const [itemsPerPage] = useState(10);
 
   // Modal State
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
 
   // Filter State
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  // Date Picker State
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const datePickerRef = useRef<HTMLDivElement>(null);
-
   // Action Menu State (Kebab Menu)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
-  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  const daysOfWeek = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -59,19 +53,16 @@ export default function AdminOrdersPage() {
     setCurrentPage(1);
   }, [search, statusFilter, selectedDate, orders]);
 
-  // Close Date Picker & Action Menu when clicking outside
+  // Close Action Menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-        setShowDatePicker(false);
-      }
       if (openMenuId !== null && !(event.target as Element).closest('.action-menu-trigger')) {
         setOpenMenuId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showDatePicker, openMenuId]);
+  }, [openMenuId]);
 
   const fetchOrders = async () => {
     try {
@@ -92,6 +83,8 @@ export default function AdminOrdersPage() {
     let filtered = [...orders];
     if (search) filtered = filtered.filter(o => o.id_order.toString().includes(search) || o.no_meja.toLowerCase().includes(search.toLowerCase()) || o.users?.nama_user?.toLowerCase().includes(search.toLowerCase()));
     if (statusFilter !== 'Semua') filtered = filtered.filter(o => o.status_order === statusFilter.toLowerCase());
+    
+    // LOGIC FILTER TANGGAL DIPERBAIKI (Menggunakan Component)
     if (selectedDate) {
       const dateStr = new Intl.DateTimeFormat('en-CA', {
         year: 'numeric',
@@ -100,6 +93,7 @@ export default function AdminOrdersPage() {
       }).format(selectedDate);
       filtered = filtered.filter(o => o.tanggal === dateStr);
     }
+    
     setFilteredOrders(filtered);
   };
 
@@ -110,22 +104,6 @@ export default function AdminOrdersPage() {
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const days = [];
-    for (let i = 0; i < firstDay.getDay(); i++) days.push(null);
-    for (let day = 1; day <= lastDay.getDate(); day++) days.push(new Date(year, month, day));
-    return days;
-  };
-
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    setShowDatePicker(false);
-  };
 
   const handleUpdateStatus = async (orderId: number, newStatus: string) => {
     try {
@@ -155,21 +133,6 @@ export default function AdminOrdersPage() {
     const icons = { pending: Clock, proses: RefreshCw, selesai: CheckCircle, dibatalkan: XCircle };
     const Icon = icons[status as keyof typeof icons] || Clock;
     return <Icon className="w-3.5 h-3.5" />;
-  };
-
-  const getRoleLabel = (user: any) => {
-    if (!user) {
-      return (
-        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
-          Customer
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 uppercase">
-        {user.level?.nama_level || 'User'}
-      </span>
-    );
   };
 
   const stats = {
@@ -239,54 +202,11 @@ export default function AdminOrdersPage() {
 
             <div className="flex flex-col sm:flex-row gap-4">
 
-              {/* Date Picker */}
-              <div className="relative w-full sm:w-auto" ref={datePickerRef}>
-                <button
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className="w-full sm:w-64 flex items-center justify-between gap-2 px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors bg-white dark:bg-neutral-800 min-w-[200px]"
-                >
-                  <div className="flex items-center gap-2 text-neutral-900 dark:text-white">
-                    <Calendar className="w-5 h-5 text-neutral-400" />
-                    <span className="flex-1 text-left">
-                      {selectedDate ? selectedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pilih Tanggal'}
-                    </span>
-                  </div>
-                  {selectedDate && (
-                    <div onClick={(e) => { e.stopPropagation(); setSelectedDate(null); }} className="text-neutral-400 hover:text-neutral-600 cursor-pointer">
-                      <XCircle className="w-4 h-4" />
-                    </div>
-                  )}
-                </button>
-
-                {showDatePicker && (
-                  <div className="absolute top-full mt-4 left-0 z-50 bg-white dark:bg-neutral-900/60 backdrop-blur-md rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-800 p-4 min-w-[320px] animate-in fade-in zoom-in-95 duration-100 origin-top-left">
-                    <div className="flex items-center justify-between mb-4">
-                      <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg">
-                        <ChevronLeft className="w-5 h-5 text-neutral-900 dark:text-white" />
-                      </button>
-                      <span className="font-bold text-neutral-900 dark:text-white">{months[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
-                      <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg">
-                        <ChevronRight className="w-5 h-5 text-neutral-900 dark:text-white" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1 mb-2">
-                      {daysOfWeek.map(day => <div key={day} className="text-center text-xs font-medium text-neutral-500 dark:text-neutral-400 py-2">{day}</div>)}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {getDaysInMonth(currentMonth).map((date, i) => {
-                        if (!date) return <div key={`e-${i}`} className="aspect-square" />;
-                        const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-                        const isToday = date.toDateString() === new Date().toDateString();
-                        return (
-                          <button key={i} onClick={() => handleDateClick(date)} className={`aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all ${isSelected ? 'bg-orange-500 text-white shadow-md' : isToday ? 'bg-blue-50 dark:bg-orange-900/20 text-orange-500 border border-orange-500' : 'hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300'}`}>
-                            {date.getDate()}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* SINGLE DATE PICKER COMPONENT */}
+              <SingleDatePicker 
+                date={selectedDate}
+                onChange={setSelectedDate}
+              />
 
               {/* Status Dropdown */}
               <div className="w-full sm:w-48">
@@ -391,7 +311,7 @@ export default function AdminOrdersPage() {
             </table>
           </div>
 
-          {/* --- FOOTER PAGINATION (ADDED) --- */}
+          {/* --- FOOTER PAGINATION --- */}
           {filteredOrders.length > 0 && (
             <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -409,7 +329,6 @@ export default function AdminOrdersPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
 
-                {/* Logic Page Numbers */}
                 <div className="flex gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(num => num === 1 || num === totalPages || (num >= currentPage - 1 && num <= currentPage + 1))
