@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     siteName: "CaffeeIn",
     images: [
       {
-        url: "/images/caffeein.png",
+        url: "/images/caffeein_small.png",
         width: 1200,
         height: 630,
         alt: "CaffeeIn Logo",
