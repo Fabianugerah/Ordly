@@ -297,7 +297,7 @@ export default function AdminDashboard() {
                         }`}
                       >
                         {stat.isPositive ? <ArrowUp className="w-3 h-3 mr-0.5" /> : <ArrowDown className="w-3 h-3 mr-0.5" />}
-                        {Math.abs(stat.growth).toFixed(1)}%
+                        {Math.abs(stat.growth ?? 0).toFixed(1)}%
                       </span>
                       <span className="text-xs text-neutral-400">
                         {stat.subtitle}
