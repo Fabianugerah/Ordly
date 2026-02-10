@@ -12,12 +12,14 @@ import {
   ChevronLeft, ChevronRight, MoreVertical, Printer, ExternalLink, Users
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-// Import Komponen Date Picker Single
 import SingleDatePicker from '@/components/ui/SingleDatePicker';
 import { PAYMENT_OPTIONS } from '@/constants/options';
 
-export default function AdminTransaksiPage() {
-  const router = useRouter();
+interface TransactionPageProps {
+  role: 'administrator' | 'kasir';
+}
+
+export default function TransactionPage({ role }: TransactionPageProps) {
   const [transaksi, setTransaksi] = useState<any[]>([]);
   const [filteredTransaksi, setFilteredTransaksi] = useState<any[]>([]);
   const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
@@ -38,9 +40,11 @@ export default function AdminTransaksiPage() {
   // Action Menu State
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
-  useEffect(() => { fetchTransaksi(); }, []);
+  useEffect(() => { 
+    fetchTransaksi(); 
+  }, []);
 
-  // Update: Reset ke halaman 1 saat filter berubah
+  // Reset ke halaman 1 saat filter berubah
   useEffect(() => {
     filterTransaksi();
     setCurrentPage(1);
@@ -108,7 +112,7 @@ export default function AdminTransaksiPage() {
       filtered = filtered.filter(t => t.metode_pembayaran === metodeBayar.toLowerCase());
     }
 
-    // Logic Filter Date (Menggunakan Date Object dari Component)
+    // Logic Filter Date
     if (selectedDate) {
       const dateStr = new Intl.DateTimeFormat('en-CA', {
         year: 'numeric',
@@ -172,8 +176,12 @@ export default function AdminTransaksiPage() {
     hariIni: transaksi.filter(t => t.tanggal === new Date().toISOString().split('T')[0]).length,
   };
 
+  const todayTotal = transaksi
+    .filter((t) => t.tanggal === new Date().toISOString().split('T')[0])
+    .reduce((sum, t) => sum + parseFloat(t.total_bayar), 0);
+
   if (loading) return (
-    <DashboardLayout allowedRoles={['administrator']}>
+    <DashboardLayout allowedRoles={[role]}>
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin w-8 h-8 border-4 border-neutral-500 border-t-transparent rounded-full" />
       </div>
@@ -181,46 +189,65 @@ export default function AdminTransaksiPage() {
   );
 
   return (
-    <DashboardLayout allowedRoles={['administrator']}>
+    <DashboardLayout allowedRoles={[role]}>
       <div className="space-y-6">
 
         {/* --- Header --- */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-neutral-800 dark:text-white">Riwayat Transaksi</h1>
-            <p className="text-neutral-600 mt-1">Kelola dan monitor semua transaksi pembayaran</p>
+            <p className="text-neutral-600 dark:text-neutral-400 mt-1">
+              {role === 'administrator' ? 'Kelola dan monitor semua transaksi pembayaran' : 'Monitor semua transaksi pembayaran'}
+            </p>
           </div>
           <Button onClick={fetchTransaksi} variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
-            <RefreshCw className="w-5 h-5" /> Refresh
+            <RefreshCw className="w-5 h-5" /> {role === 'administrator' ? 'Refresh' : 'Refresh Data'}
           </Button>
         </div>
 
         {/* --- Stats Cards --- */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { label: 'Total', value: stats.total, color: 'text-neutral-800 dark:text-white' },
-            { label: 'Revenue', value: `Rp ${(stats.totalPendapatan / 1000000).toFixed(1)}jt`, color: 'text-green-600' },
-            { label: 'Hari Ini', value: stats.hariIni, color: 'text-blue-600' },
-            { label: 'Tunai', value: stats.tunai, color: 'text-green-600' },
-            { label: 'Debit', value: stats.debit, color: 'text-blue-600' },
-            { label: 'QRIS', value: stats.qris, color: 'text-purple-600' }
-          ].map((stat, i) => (
-            <Card key={i} className="text-center p-4">
-              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1 font-medium">{stat.label}</p>
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+        {role === 'administrator' ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { label: 'Total', value: stats.total, color: 'text-neutral-800 dark:text-white' },
+              { label: 'Revenue', value: `Rp ${(stats.totalPendapatan / 1000000).toFixed(1)}jt`, color: 'text-green-600' },
+              { label: 'Hari Ini', value: stats.hariIni, color: 'text-blue-600' },
+              { label: 'Tunai', value: stats.tunai, color: 'text-green-600' },
+              { label: 'Debit', value: stats.debit, color: 'text-blue-600' },
+              { label: 'QRIS', value: stats.qris, color: 'text-purple-600' }
+            ].map((stat, i) => (
+              <Card key={i} className="text-center p-4">
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1 font-medium">{stat.label}</p>
+                <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="text-center bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-lg">
+              <p className="text-green-100 text-sm mb-1 font-medium">Pendapatan Hari Ini</p>
+              <p className="text-3xl font-bold">Rp {(todayTotal / 1000).toFixed(0)}k</p>
             </Card>
-          ))}
-        </div>
+            <Card className="text-center p-4">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1 font-medium">Total Transaksi</p>
+              <p className="text-3xl font-bold text-neutral-800 dark:text-white">{stats.total}</p>
+            </Card>
+            <Card className="text-center p-4">
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-1 font-medium">Transaksi Hari Ini</p>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.hariIni}</p>
+            </Card>
+          </div>
+        )}
 
         {/* --- Filters Section --- */}
-        <div className="flex flex-col lg:flex-row gap-4 pt-6">
+        <div className={`flex flex-col lg:flex-row gap-4 ${role === 'administrator' ? 'pt-6' : ''}`}>
 
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
             <input
               type="text"
-              placeholder="Cari ID Order atau Nomor Meja..."
+              placeholder={role === 'administrator' ? 'Cari ID Order atau Nomor Meja...' : 'Cari ID, Meja, atau Nama Pelanggan...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-500 transition-all placeholder:text-neutral-400"
@@ -239,8 +266,8 @@ export default function AdminTransaksiPage() {
             <div className="w-full sm:w-48">
               <Select
                 options={PAYMENT_OPTIONS}
-                  value={metodeBayar}
-                  onChange={(e) => setMetodeBayar(e.target.value)}
+                value={metodeBayar}
+                onChange={(e) => setMetodeBayar(e.target.value)}
                 className="!bg-neutral-50 dark:!bg-neutral-950 !py-2.5"
               />
             </div>

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "CaffeeIn - Authentic and Modern Coffee Shop",
-    description: "Modern Coffee Shop Management System",
+    description: "Experience the perfect blend of authentic coffee craftsmanship and modern cafe ambiance. Your daily escape for premium specialty coffee.",
     url: "https://caffeein.vercel.app",
     siteName: "CaffeeIn",
     images: [

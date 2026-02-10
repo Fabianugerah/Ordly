@@ -17,3 +17,11 @@ export const SORT_OPTIONS = [
   { value: 'price_asc', label: 'Harga Termurah' },
   { value: 'price_desc', label: 'Harga Termahal' },
 ] as const;
+
+export const PAYMENT_OPTIONS = [
+  { value: 'Semua', label: 'Semua Metode' },
+  { value: 'Tunai', label: 'Tunai' },
+  { value: 'Debit', label: 'Debit' },
+  { value: 'QRIS', label: 'QRIS' },
+] as const;
+

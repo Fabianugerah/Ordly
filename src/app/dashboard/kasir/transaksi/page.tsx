@@ -129,7 +129,7 @@ export default function KasirTransaksiPage() {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const handlePrintReceipt = (transaksiId: number) => {
-    window.open(`/customer/receipt?transaksi=${transaksiId}`, '_blank');
+    window.open(`/guest/receipt?transaksi=${transaksiId}`, '_blank');
   };
 
   const getPaymentIcon = (metode: string) => {
